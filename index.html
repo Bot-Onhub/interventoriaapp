@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Terreno - AaaS</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        /* Variables de color y diseño */
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --success-hover: #15803d;
+            --warning: #eab308;
+            --warning-hover: #ca8a04;
+            --danger: #ef4444;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --border: #d1d5db;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 1rem;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        /* Contenedores principales (Tarjetas) */
+        .card {
+            max-width: 400px;
+            margin: 2rem auto;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-top: 4px solid var(--primary);
+        }
+        .card.success-border {
+            border-top-color: var(--success);
+            margin-top: 1rem;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        /* Formularios */
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            box-sizing: border-box;
+            font-size: 1rem;
+            background-color: #f9fafb;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #fff;
+        }
+        input[type="file"] {
+            padding: 0.5rem;
+            background-color: #fff;
+        }
+
+        /* Botones */
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        
+        .btn-success { background-color: var(--success); padding: 1rem; font-size: 1.1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-success:hover { background-color: var(--success-hover); }
+        
+        .btn-warning { background-color: var(--warning); margin-top: 1rem; }
+        .btn-warning:hover { background-color: var(--warning-hover); }
+        
+        .btn-outline { 
+            background-color: #eff6ff; 
+            color: var(--primary); 
+            border: 1px solid #bfdbfe; 
+            margin-bottom: 0.25rem;
+        }
+        .btn-outline:hover { background-color: #dbeafe; }
+
+        /* Utilidades y Layout */
+        .hidden { display: none !important; }
+        .header-flex { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1.5rem;
+        }
+        #gps-data {
+            font-size: 0.75rem;
+            text-align: center;
+            color: #6b7280;
+            height: 1rem;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        /* Clases de compatibilidad para el archivo app.js */
+        .text-xs { font-size: 0.75rem; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .bg-green-500 { background-color: var(--success) !important; }
+        .bg-red-500 { background-color: var(--danger) !important; }
+        .text-white { color: white !important; }
+        .rounded { border-radius: 0.25rem; }
+        .font-bold { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="card">
+        <h2>Acceso Técnicos</h2>
+        <input type="text" id="user" placeholder="Usuario">
+        <input type="password" id="pass" placeholder="Contraseña">
+        <button onclick="login()" class="btn-primary">Ingresar</button>
+    </div>
+
+    <!-- Pantalla de Captura de Postes -->
+    <div id="app-screen" class="card success-border hidden">
+        <div class="header-flex">
+            <h2>Inspección de Nodo</h2>
+            <span id="status-indicator" class="text-xs px-2 py-1 font-bold bg-red-500 text-white rounded">Offline</span>
+        </div>
+        
+        <label>ID Código QR</label>
+        <input type="text" id="id_poste" placeholder="Ej: TRN-LED-0001" style="text-transform: uppercase;">
+        <!-- Botón y Visor de la Cámara para QR -->
+<button type="button" onclick="startQrScanner()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg font-bold text-sm shadow">
+    📷 Escanear QR con la Cámara
+</button>
+<div id="reader" class="w-full mt-2 hidden"></div>
+        
+        <button onclick="captureGPS()" class="btn-outline">📍 Capturar Coordenada GPS</button>
+        <p id="gps-data"></p>
+        
+        <label>Evidencia Fotográfica (Obligatorio)</label>
+        <input type="file" accept="image/*" capture="environment" id="cameraInput">
+        
+        <button onclick="saveRecord()" class="btn-success">Guardar Inspección</button>
+        
+        <button onclick="syncData()" id="btn-sync" class="btn-warning hidden">
+            Sincronizar Pendientes (<span id="queue-count">0</span>)
+        </button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
