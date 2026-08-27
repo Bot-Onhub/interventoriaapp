@@ -3,178 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Captura de Terreno - AaaS</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Sistema de Interventoría de Activos</title>
+    <!-- Carga de Tailwind CSS + Lector QR -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        /* Variables de color y diseño */
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --success: #16a34a;
-            --success-hover: #15803d;
-            --warning: #eab308;
-            --warning-hover: #ca8a04;
-            --danger: #ef4444;
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --border: #d1d5db;
-        }
-
+        /* Estilos de respaldo para garantizar un diseño impecable sin fallos */
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 1rem;
-            margin: 0;
-            box-sizing: border-box;
+            background-color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
-
-        /* Contenedores principales (Tarjetas) */
-        .card {
-            max-width: 400px;
-            margin: 2rem auto;
-            background: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-top: 4px solid var(--primary);
+        .app-card {
+            background: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
-        .card.success-border {
-            border-top-color: var(--success);
-            margin-top: 1rem;
+        .hidden {
+            display: none !important;
         }
-
-        h2 {
-            margin-top: 0;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-main);
-        }
-
-        /* Formularios */
-        label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1.25rem;
-            border: 1px solid var(--border);
-            border-radius: 0.25rem;
-            box-sizing: border-box;
-            font-size: 1rem;
-            background-color: #f9fafb;
-        }
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background-color: #fff;
-        }
-        input[type="file"] {
-            padding: 0.5rem;
-            background-color: #fff;
-        }
-
-        /* Botones */
-        button {
-            width: 100%;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 0.25rem;
-            font-size: 1rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            margin-bottom: 0.5rem;
-            transition: background-color 0.2s;
-        }
-        .btn-primary { background-color: var(--primary); }
-        .btn-primary:hover { background-color: var(--primary-hover); }
-        
-        .btn-success { background-color: var(--success); padding: 1rem; font-size: 1.1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-success:hover { background-color: var(--success-hover); }
-        
-        .btn-warning { background-color: var(--warning); margin-top: 1rem; }
-        .btn-warning:hover { background-color: var(--warning-hover); }
-        
-        .btn-outline { 
-            background-color: #eff6ff; 
-            color: var(--primary); 
-            border: 1px solid #bfdbfe; 
-            margin-bottom: 0.25rem;
-        }
-        .btn-outline:hover { background-color: #dbeafe; }
-
-        /* Utilidades y Layout */
-        .hidden { display: none !important; }
-        .header-flex { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 1.5rem;
-        }
-        #gps-data {
-            font-size: 0.75rem;
-            text-align: center;
-            color: #6b7280;
-            height: 1rem;
-            margin-top: 0;
-            margin-bottom: 1rem;
-        }
-
-        /* Clases de compatibilidad para el archivo app.js */
-        .text-xs { font-size: 0.75rem; }
-        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-        .bg-green-500 { background-color: var(--success) !important; }
-        .bg-red-500 { background-color: var(--danger) !important; }
-        .text-white { color: white !important; }
-        .rounded { border-radius: 0.25rem; }
-        .font-bold { font-weight: bold; }
     </style>
 </head>
-<body>
-    <!-- Pantalla de Login -->
-    <div id="login-screen" class="card">
-        <h2>Acceso Técnicos</h2>
-        <input type="text" id="user" placeholder="Usuario">
-        <input type="password" id="pass" placeholder="Contraseña">
-        <button onclick="login()" class="btn-primary">Ingresar</button>
-    </div>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <!-- Pantalla de Captura de Postes -->
-    <div id="app-screen" class="card success-border hidden">
-        <div class="header-flex">
-            <h2>Inspección de Nodo</h2>
-            <span id="status-indicator" class="text-xs px-2 py-1 font-bold bg-red-500 text-white rounded">Offline</span>
+    <div class="w-full max-w-md">
+
+        <!-- 1. PANTALLA DE LOGIN -->
+        <div id="login-screen" class="app-card p-6">
+            <!-- Encabezado con Logo -->
+            <div class="text-center mb-6">
+                <img src="./logo.png" alt="Logo Empresa" class="w-24 h-24 mx-auto rounded-full border-4 border-indigo-600 shadow-lg object-cover mb-3" onerror="this.src='https://via.placeholder.com/100?text=LOGO'">
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">Interventoría AaaS</h1>
+                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-1">Control y Registro de Activos</p>
+            </div>
+
+            <!-- Formulario de Ingreso -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Usuario</label>
+                    <input type="text" id="user" placeholder="Ingresa tu usuario" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Contraseña</label>
+                    <input type="password" id="pass" placeholder="••••••••" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-medium">
+                </div>
+                <button onclick="login()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 text-sm">
+                    Ingresar
+                </button>
+            </div>
         </div>
-        
-        <label>ID Código QR</label>
-        <input type="text" id="id_poste" placeholder="Ej: TRN-LED-0001" style="text-transform: uppercase;">
-        <!-- Botón y Visor de la Cámara para QR -->
-<button type="button" onclick="startQrScanner()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg font-bold text-sm shadow">
-    📷 Escanear QR con la Cámara
-</button>
-<div id="reader" class="w-full mt-2 hidden"></div>
-        
-        <button onclick="captureGPS()" class="btn-outline">📍 Capturar Coordenada GPS</button>
-        <p id="gps-data"></p>
-        
-        <label>Evidencia Fotográfica (Obligatorio)</label>
-        <input type="file" accept="image/*" capture="environment" id="cameraInput">
-        
-        <button onclick="saveRecord()" class="btn-success">Guardar Inspección</button>
-        
-        <button onclick="syncData()" id="btn-sync" class="btn-warning hidden">
-            Sincronizar Pendientes (<span id="queue-count">0</span>)
-        </button>
+
+        <!-- 2. PANTALLA PRINCIPAL DE LA APP -->
+        <div id="app-screen" class="app-card p-6 hidden">
+            <!-- Barra Superior Corporativa -->
+            <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <img src="./logo.png" alt="Logo" class="w-12 h-12 rounded-full border-2 border-indigo-600 shadow-sm object-cover" onerror="this.src='https://via.placeholder.com/50?text=LOGO'">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-800 leading-tight">Panel de Inspección</h2>
+                        <p class="text-xs text-gray-500 font-semibold">Modo Operador de Campo</p>
+                    </div>
+                </div>
+                <div id="status-indicator" class="text-xs px-3 py-1.5 bg-red-500 text-white rounded-full font-bold shadow-sm uppercase tracking-wide">
+                    Offline
+                </div>
+            </div>
+
+            <!-- Formulario de Inspección -->
+            <div class="space-y-4">
+                <!-- Escáner QR e ID -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ID Código QR del Activo</label>
+                    <input type="text" id="id_poste" placeholder="EJ: TRN-LED-0001" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm uppercase font-mono font-bold text-gray-800">
+                    
+                    <button type="button" onclick="startQrScanner()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-lg font-bold text-xs uppercase tracking-wider shadow flex items-center justify-center gap-2">
+                        📷 Escanear QR con la Cámara
+                    </button>
+                    <div id="reader" class="w-full mt-2 hidden rounded-lg overflow-hidden border-2 border-indigo-500"></div>
+                </div>
+
+                <!-- Coordenadas GPS -->
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-center">
+                    <button type="button" onclick="captureGPS()" class="w-full bg-blue-50 hover:bg-blue-100 text-indigo-700 border border-indigo-200 p-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition">
+                        📍 Capturar Coordenada GPS
+                    </button>
+                    <p id="gps-data" class="text-xs font-mono font-semibold text-gray-600 mt-2 min-h-[16px]"></p>
+                </div>
+
+                <!-- Evidencia Fotográfica -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Evidencia Fotográfica (Obligatorio)</label>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-gray-200 rounded-lg p-1">
+                </div>
+
+                <!-- Botón de Guardado Local -->
+                <button onclick="saveRecord()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg text-sm uppercase tracking-wider transition duration-200 mt-2">
+                    Guardar Inspección
+                </button>
+
+                <!-- Botón de Sincronización Cloud -->
+                <button id="btn-sync" onclick="syncData()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg text-sm uppercase tracking-wider transition duration-200 hidden mt-2">
+                    Sincronizar Pendientes (<span id="queue-count">0</span>)
+                </button>
+            </div>
+        </div>
+
     </div>
 
+    <!-- Carga del Lógica de la Aplicación (Inalterada) -->
     <script src="app.js"></script>
 </body>
 </html>
