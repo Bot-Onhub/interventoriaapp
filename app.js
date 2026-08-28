@@ -46,11 +46,13 @@ async function login() {
     document.querySelector("#login-screen button").innerText = "Verificando...";
     
     try {
-        const urlLogin = `${API_URL}&action=login&usuario=${user}&clave=${pass}`;
+        // La URL mantiene el token de seguridad, pero la acción viaja protegida por POST
+        const urlLogin = `${API_URL}&action=login`;
         
         const res = await fetch(urlLogin, {
-            method: 'GET',
-            redirect: 'follow' 
+            method: 'POST',
+            redirect: 'follow',
+            body: JSON.stringify({ usuario: user, clave: pass })
         });
         
         const data = await res.json();
@@ -62,7 +64,7 @@ async function login() {
             document.getElementById("login-screen").classList.add("hidden");
             document.getElementById("app-screen").classList.remove("hidden");
         } else {
-            alert(data.error);
+            alert(data.error || "Credenciales incorrectas.");
             document.querySelector("#login-screen button").innerText = "Ingresar";
         }
     } catch(err) {
