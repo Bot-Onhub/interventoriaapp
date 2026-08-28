@@ -1,6 +1,8 @@
 // REEMPLAZA ESTO CON LA URL GENERADA EN APPS SCRIPT
 // CORRECTO (usa & para el segundo parámetro)
-const url = `https://script.google.com/macros/s/AKfycbzW88AL3I1pgwWNxXHoZ3sLswQp7K6Qt9zhPf7hPfrIxXgkQdfKUxicEGozIZWpRrM_/exec?token=Macgregor281170&action=login&usuario=${usuario}&clave=${clave}`;
+// Enlace seguro con el Token integrado correctamente
+const API_URL = "https://script.google.com/macros/s/AKfycbzW88AL3I1pgwWNxXHoZ3sLswQp7K6Qt9zhPf7hPfrIxXgkQdfKUxicEGozIZWpRrM_/exec?token=Macgregor281170";
+
 let db;
 let currentUser = localStorage.getItem("user") || "";
 
