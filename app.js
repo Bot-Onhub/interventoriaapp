@@ -235,6 +235,11 @@ async function syncData() {
 
                     // Petición a la API de Storage de Supabase
                     const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
+                        if (!resStorage.ok) {
+    const errorText = await resStorage.text();
+    console.error("ERROR DE STORAGE:", errorText);
+    alert("Fallo al subir foto: " + errorText);
+}
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
