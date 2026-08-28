@@ -188,7 +188,7 @@ async function syncData() {
         if(records.length === 0) return;
         
         try {
-            const res = await fetch(`${API_URL}&action=sync`, { ...
+            const res = await fetch(`${API_URL}&action=sync`, {
                 method: 'POST',
                 body: JSON.stringify({ data: records })
             });
@@ -207,7 +207,6 @@ async function syncData() {
         }
     };
 }
-
 // Activar PWA
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
