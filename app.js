@@ -223,23 +223,15 @@ async function syncData() {
         if(records.length === 0) return;
         
         try {
-            // Recorremos cada registro guardado offline para subir su foto y luego sus datos
             for (let record of records) {
                 let fotoUrlPublica = "";
 
-                // 1. Si el registro tiene una foto en base64, la subimos al Storage
+                // 1. Subir foto al Storage de Supabase
                 if (record.foto_base64) {
-                    // Convertir Base64 a Blob (archivo de imagen)
                     const blobFoto = dataURLtoBlob(record.foto_base64);
                     const nombreArchivo = `${record.usuario}_${Date.now()}_${record.id_poste}.jpg`;
 
-                    // Petición a la API de Storage de Supabase
                     const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
-                        if (!resStorage.ok) {
-    const errorText = await resStorage.text();
-    console.error("ERROR DE STORAGE:", errorText);
-    alert("Fallo al subir foto: " + errorText);
-}
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -249,13 +241,17 @@ async function syncData() {
                         body: blobFoto
                     });
 
-                    if (resStorage.ok) {
-                        // Construimos la URL pública de la foto guardada en el bucket
-                        fotoUrlPublica = `${SUPABASE_URL}/storage/v1/object/public/evidencias-inspeccion/${nombreArchivo}`;
+                    if (!resStorage.ok) {
+                        const errorText = await resStorage.text();
+                        console.error("ERROR DE STORAGE:", errorText);
+                        alert("Fallo al subir foto: " + errorText);
+                        throw new Error("No se pudo subir la foto al Storage.");
                     }
+
+                    fotoUrlPublica = `${SUPABASE_URL}/storage/v1/object/public/evidencias-inspeccion/${nombreArchivo}`;
                 }
 
-                // 2. Preparamos el objeto final (reemplazando el base64 pesado por el enlace web de la foto)
+                // 2. Preparar el objeto con la URL de la foto
                 const datosParaEnviar = {
                     id_poste: record.id_poste,
                     tipo_actividad: record.tipo_actividad,
@@ -265,10 +261,10 @@ async function syncData() {
                     latitud: record.latitud,
                     longitud: record.longitud,
                     timestamp: record.timestamp,
-                    foto_base64: fotoUrlPublica // Ahora guardamos la URL pública en lugar de todo el texto gigante
+                    foto_base64: fotoUrlPublica
                 };
 
-                // 3. Enviamos el registro a la tabla de la base de datos
+                // 3. Enviar a la tabla de la base de datos
                 const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
                     method: 'POST',
                     headers: {
@@ -285,16 +281,16 @@ async function syncData() {
                 }
             }
             
-            // Si todo el ciclo terminó con éxito, borramos los datos locales del celular
+            // Limpieza local si todo salió bien
             const txDel = db.transaction("registros", "readwrite");
             txDel.objectStore("registros").clear();
             
-            alert(`¡Sincronización exitosa! ${records.length} registros y sus fotos subidas a la nube.`);
+            alert(`¡Sincronización exitosa! ${records.length} registros y fotos subidos.`);
             checkQueue();
             document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
 
         } catch(e) {
-            alert("Error durante la sincronización. Los datos siguen seguros en tu celular.");
+            alert("Error durante la sincronización. Revisa la consola.");
             console.error("Detalle del fallo:", e);
             document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">'+records.length+'</span>)';
         }
