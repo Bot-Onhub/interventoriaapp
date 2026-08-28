@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aaas-campo-v2'; // Cambiamos la versión para forzar actualización
+const CACHE_NAME = 'aaas-campo-v3'; // Cambiamos la versión para forzar actualización
 
 // SOLO archivos locales reales. Si falta uno, la caché colapsa.
 const urlsToCache = [
