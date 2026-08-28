@@ -214,7 +214,7 @@ function checkQueue() {
 }
 
 async function syncData() {
-    document.getElementById("btn-sync").innerText = "Enviando a Supabase...";
+    document.getElementById("btn-sync").innerText = "Sincronizando fotos y datos...";
     const tx = db.transaction("registros", "readonly");
     const request = tx.objectStore("registros").getAll();
     
@@ -223,40 +223,88 @@ async function syncData() {
         if(records.length === 0) return;
         
         try {
-            // Utilizamos la API REST de Supabase para inserción masiva (bulk insert)
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'Prefer': 'return=minimal' // Optimiza la respuesta del servidor
-                },
-                body: JSON.stringify(records) // Enviamos el array completo de registros
-            });
-            
-            if (res.ok) {
-                // Si Supabase responde 200-299, borramos los datos locales
-                const txDel = db.transaction("registros", "readwrite");
-                txDel.objectStore("registros").clear();
-                
-                alert(`¡Sincronización exitosa! ${records.length} registros enviados a la nube.`);
-                checkQueue();
-                document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
-            } else {
-                const errorData = await res.json();
-                console.error("Error de Supabase:", errorData);
-                alert("Error en la estructura de la base de datos de Supabase. Revisa la consola.");
-                document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">'+records.length+'</span>)';
+            // Recorremos cada registro guardado offline para subir su foto y luego sus datos
+            for (let record of records) {
+                let fotoUrlPublica = "";
+
+                // 1. Si el registro tiene una foto en base64, la subimos al Storage
+                if (record.foto_base64) {
+                    // Convertir Base64 a Blob (archivo de imagen)
+                    const blobFoto = dataURLtoBlob(record.foto_base64);
+                    const nombreArchivo = `${record.usuario}_${Date.now()}_${record.id_poste}.jpg`;
+
+                    // Petición a la API de Storage de Supabase
+                    const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'image/jpeg'
+                        },
+                        body: blobFoto
+                    });
+
+                    if (resStorage.ok) {
+                        // Construimos la URL pública de la foto guardada en el bucket
+                        fotoUrlPublica = `${SUPABASE_URL}/storage/v1/object/public/evidencias-inspeccion/${nombreArchivo}`;
+                    }
+                }
+
+                // 2. Preparamos el objeto final (reemplazando el base64 pesado por el enlace web de la foto)
+                const datosParaEnviar = {
+                    id_poste: record.id_poste,
+                    tipo_actividad: record.tipo_actividad,
+                    sector_barrio: record.sector_barrio,
+                    descripcion_trabajo: record.descripcion_trabajo,
+                    usuario: record.usuario,
+                    latitud: record.latitud,
+                    longitud: record.longitud,
+                    timestamp: record.timestamp,
+                    foto_base64: fotoUrlPublica // Ahora guardamos la URL pública en lugar de todo el texto gigante
+                };
+
+                // 3. Enviamos el registro a la tabla de la base de datos
+                const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(datosParaEnviar)
+                });
+
+                if (!resDb.ok) {
+                    throw new Error("Error al insertar el registro en la tabla.");
+                }
             }
+            
+            // Si todo el ciclo terminó con éxito, borramos los datos locales del celular
+            const txDel = db.transaction("registros", "readwrite");
+            txDel.objectStore("registros").clear();
+            
+            alert(`¡Sincronización exitosa! ${records.length} registros y sus fotos subidas a la nube.`);
+            checkQueue();
+            document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
+
         } catch(e) {
-            alert("Fallo en red. Los datos siguen seguros en tu celular. Intenta cuando tengas mejor señal.");
-            console.error("Fallo de red:", e);
+            alert("Error durante la sincronización. Los datos siguen seguros en tu celular.");
+            console.error("Detalle del fallo:", e);
             document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">'+records.length+'</span>)';
         }
     };
 }
 
+// Función auxiliar necesaria para transformar la foto guardada en el celular a formato de archivo
+function dataURLtoBlob(dataurl) {
+    let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
+}
 // ==========================================
 // 8. LECTOR DE CÓDIGO QR Y SERVICE WORKER
 // ==========================================
