@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Clientes - Interventoría</title>
+    <!-- Tailwind CSS para diseño profesional -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans">
+
+    <!-- Pantalla de Login del Cliente -->
+    <div id="login-cliente-screen" class="flex items-center justify-center min-h-screen px-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2 text-center">Portal de Interventoría</h2>
+            <p class="text-sm text-slate-500 mb-6 text-center">Acceso exclusivo para supervisión y clientes</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Usuario</label>
+                    <input type="text" id="cliente_user" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ingresa tu usuario">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Contraseña</label>
+                    <input type="password" id="cliente_pass" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••">
+                </div>
+                <button onclick="loginCliente()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Ingresar al Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla Principal del Panel de Cliente (Oculta al inicio) -->
+    <div id="app-cliente-screen" class="hidden min-h-screen flex flex-col">
+        <!-- Barra Superior -->
+        <header class="bg-slate-900 text-white shadow">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-bold">Consola de Supervisión</h1>
+                    <p class="text-xs text-slate-400">Registros y evidencias de campo en tiempo real</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="welcome-user" class="text-sm text-slate-300"></span>
+                    <button onclick="logoutCliente()" class="bg-red-600 hover:bg-red-700 text-xs px-3 py-1.5 rounded font-semibold transition">
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenido Principal -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-8">
+            <!-- Panel de Control / Acciones -->
+            <div class="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="text-slate-700 font-medium">
+                    Total de inspecciones registradas: <span id="total-registros" class="font-bold text-blue-600">0</span>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="cargarRegistrosCliente()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded transition">
+                        Actualizar Datos
+                    </button>
+                    <button onclick="exportarCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded transition">
+                        Exportar Reporte (CSV)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla de Datos -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase font-semibold">
+                                <th class="p-3">ID Poste</th>
+                                <th class="p-3">Actividad</th>
+                                <th class="p-3">Sector / Barrio</th>
+                                <th class="p-3">Descripción</th>
+                                <th class="p-3">Técnico</th>
+                                <th class="p-3">Coordenadas</th>
+                                <th class="p-3">Fecha / Hora</th>
+                                <th class="p-3 text-center">Evidencia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-registros" class="divide-y divide-slate-200 text-sm text-slate-700">
+                            <!-- Los registros se cargan dinámicamente aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para ver la foto en grande -->
+    <div id="modal-foto" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onclick="cerrarModalFoto()">
+        <div class="relative max-w-2w max-h-[90vh]">
+            <img id="img-modal" src="" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain">
+            <p class="text-center text-white text-xs mt-2">Haz clic en cualquier parte para cerrar</p>
+        </div>
+    </div>
+
+    <!-- Script de Conexión y Lógica -->
+    <script>
+        // CONFIGURACIÓN DE SUPABASE (Las mismas credenciales de tu app.js)
+        const SUPABASE_URL = "https://TU_PROYECTO.supabase.co"; // Reemplaza con tu URL
+        const SUPABASE_ANON_KEY = "TU_CLAVE_ANONIMA_AQUI"; // Reemplaza con tu Anon Key
+        const SUPABASE_TABLE = "registros_interventoria";
+
+        // Autenticación simple de cliente (puedes ajustarla según tus usuarios de Google Apps Script o dejar un acceso seguro)
+        function loginCliente() {
+            const user = document.getElementById("cliente_user").value;
+            const pass = document.getElementById("cliente_pass").value;
+
+            // Validación temporal para demo o enlace directo (puedes conectarlo también a tu GAS si deseas validar contra tu hoja de Excel)
+            if (user && pass) {
+                localStorage.setItem("cliente_user", user);
+                document.getElementById("welcome-user").innerText = `Usuario: ${user}`;
+                document.getElementById("login-cliente-screen").classList.add("hidden");
+                document.getElementById("app-cliente-screen").classList.remove("hidden");
+                cargarRegistrosCliente();
+            } else {
+                alert("Por favor ingresa usuario y contraseña.");
+            }
+        }
+
+        function logoutCliente() {
+            localStorage.removeItem("cliente_user");
+            document.getElementById("app-cliente-screen").classList.add("hidden");
+            document.getElementById("login-cliente-screen").classList.remove("hidden");
+        }
+
+        // Verificar si ya estaba logueado en este navegador
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedUser = localStorage.getItem("cliente_user");
+            if (savedUser) {
+                document.getElementById("cliente_user").value = savedUser;
+                document.getElementById("welcome-user").innerText = `Usuario: ${savedUser}`;
+                document.getElementById("login-cliente-screen").classList.add("hidden");
+                document.getElementById("app-cliente-screen").classList.remove("hidden");
+                cargarRegistrosCliente();
+            }
+        });
+
+        let datosCache = [];
+
+        // Cargar datos directamente desde la tabla de Supabase
+        async function cargarRegistrosCliente() {
+            const tbody = document.getElementById("tabla-registros");
+            tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Cargando registros desde la nube...</td></tr>`;
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=id.desc`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (!res.ok) throw new Error("Error al consultar la base de datos.");
+
+                datosCache = await res.json();
+                document.getElementById("total-registros").innerText = datosCache.length;
+
+                if (datosCache.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">No hay inspecciones registradas todavía.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                datosCache.forEach(reg => {
+                    const fechaFormateada = reg.timestamp ? new Date(reg.timestamp).toLocaleString() : "N/D";
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-50 border-b border-slate-100 transition";
+
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold text-slate-900">${reg.id_poste || 'N/D'}</td>
+                        <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-semibold">${reg.tipo_actividad || 'N/D'}</span></td>
+                        <td class="p-3">${reg.sector_barrio || 'N/D'}</td>
+                        <td class="p-3 max-w-xs truncate" title="${reg.descripcion_trabajo || ''}">${reg.descripcion_trabajo || 'N/D'}</td>
+                        <td class="p-3 text-slate-500">${reg.usuario || 'N/D'}</td>
+                        <td class="p-3 text-xs font-mono text-slate-500">${reg.latitud}, ${reg.longitud}</td>
+                        <td class="p-3 text-xs text-slate-500">${fechaFormateada}</td>
+                        <td class="p-3 text-center">
+                            ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.foto_base64}')" class="bg-slate-100 hover:bg-slate-200 p-1.5 rounded inline-block transition"><img src="${reg.foto_base64}" class="w-10 h-10 object-cover rounded shadow-sm"></button>` : '<span class="text-xs text-slate-400">Sin foto</span>'}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (err) {
+                console.error("Error cargando datos:", err);
+                tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-red-500">Error de conexión al cargar la información.</td></tr>`;
+            }
+        }
+
+        // Funciones del Modal de Fotos
+        function verFotoGrande(url) {
+            document.getElementById("img-modal").src = url;
+            document.getElementById("modal-foto").classList.remove("hidden");
+        }
+
+        function cerrarModalFoto() {
+            document.getElementById("modal-foto").classList.add("hidden");
+        }
+
+        // Exportar a CSV para Excel
+        function exportarCSV() {
+            if (datosCache.length === 0) return alert("No hay datos para exportar.");
+
+            let csvContent = "\uFEFFID Poste,Tipo Actividad,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,URL Foto\n";
+            
+            datosCache.forEach(r => {
+                const fila = [
+                    `"${r.id_poste || ''}"`,
+                    `"${r.tipo_actividad || ''}"`,
+                    `"${r.sector_barrio || ''}"`,
+                    `"${(r.descripcion_trabajo || '').replace(/"/g, '""')}"`,
+                    `"${r.usuario || ''}"`,
+                    r.latitud || '',
+                    r.longitud || '',
+                    `"${r.timestamp || ''}"`,
+                    `"${r.foto_base64 || ''}"`
+                ].join(",");
+                csvContent += fila + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Reporte_Interventoria_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
