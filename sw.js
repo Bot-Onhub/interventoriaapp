@@ -1,4 +1,4 @@
-const CACHE_NAME = 'interventoria-cache-v5'; // Sube este número cada vez que hagas un cambio en app.js o index.html
+const CACHE_NAME = 'interventoria-cache-v6'; // Sube este número cada vez que hagas un cambio en app.js o index.html
 
 const urlsToCache = [
   '/',
