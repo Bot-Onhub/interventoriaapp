@@ -193,7 +193,10 @@
             tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">Cargando registros desde la nube...</td></tr>`;
 
             try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=id.desc`, {
+                const urlPeticion = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=id.desc`;
+                console.log("Consultando a:", urlPeticion);
+
+                const res = await fetch(urlPeticion, {
                     method: 'GET',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -201,13 +204,16 @@
                     }
                 });
 
-                if (!res.ok) throw new Error("Error al consultar la base de datos.");
+                if (!res.ok) {
+                    const textoError = await res.text();
+                    throw new Error(`Error HTTP ${res.status}: ${textoError}`);
+                }
 
                 datosCache = await res.json();
                 document.getElementById("total-registros").innerText = datosCache.length;
 
-                if (datosCache.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">No hay inspecciones registradas todavía.</td></tr>`;
+                if (!Array.isArray(datosCache) || datosCache.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #d97706;">La consulta fue exitosa, pero la tabla '${SUPABASE_TABLE}' devolvió 0 registros.</td></tr>`;
                     return;
                 }
 
@@ -232,11 +238,10 @@
                 });
 
             } catch (err) {
-                console.error("Error cargando datos:", err);
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #dc2626;">Error de conexión al cargar la información.</td></tr>`;
+                console.error("Fallo detallado:", err);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #dc2626;">Fallo al cargar: ${err.message}</td></tr>`;
             }
         }
-
         function verFotoGrande(url) {
             document.getElementById("img-modal").src = url;
             document.getElementById("modal-foto").classList.remove("hidden");
