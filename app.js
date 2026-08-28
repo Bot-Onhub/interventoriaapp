@@ -1,5 +1,6 @@
 // REEMPLAZA ESTO CON LA URL GENERADA EN APPS SCRIPT
-const API_URL = "https://script.google.com/macros/s/AKfycbzuA41gnPCodDdnCdBUzGbHmT8uzh2_yu2zOEavJ6x-J0bcECqkdv46Qt4LPIMJ4MQ7/exec?token=Macgregor281170"; 
+// CORRECTO (usa & para el segundo parámetro)
+const url = `https://script.google.com/macros/s/AKfycbzW88AL3I1pgwWNxXHoZ3sLswQp7K6Qt9zhPf7hPfrIxXgkQdfKUxicEGozIZWpRrM_/exec?token=Macgregor281170&action=login&usuario=${usuario}&clave=${clave}`;
 let db;
 let currentUser = localStorage.getItem("user") || "";
 
