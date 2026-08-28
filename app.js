@@ -5,7 +5,7 @@
 const API_URL_GAS = "https://script.google.com/macros/s/AKfycbwSOCQqsj_AaU2VLMGtYvlVlbG4mzBP4FmE0-XNflCss5f0bZpaOjTT2LKFaNaYMTrZ/exec?token=Macgregor281170";
 
 // INYECTA AQUÍ TUS CREDENCIALES DE SUPABASE PARA GUARDAR DATOS
-const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co/rest/v1/"; // Reemplaza con tu URL de Supabase
+const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; // Reemplaza con tu URL de Supabase
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; // Reemplaza con tu Anon Key
 const SUPABASE_TABLE = "registros_interventoria"; // Reemplaza con el nombre de tu tabla en Supabase
 
