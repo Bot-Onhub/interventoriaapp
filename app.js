@@ -1,12 +1,20 @@
-// REEMPLAZA ESTO CON LA URL GENERADA EN APPS SCRIPT
-// CORRECTO (usa & para el segundo parámetro)
-// Enlace seguro con el Token integrado correctamente
-const API_URL = "https://script.google.com/macros/s/AKfycbwSOCQqsj_AaU2VLMGtYvlVlbG4mzBP4FmE0-XNflCss5f0bZpaOjTT2LKFaNaYMTrZ/exec?token=Macgregor281170";
+// ==========================================
+// 1. CONFIGURACIÓN DE SERVIDORES Y APIS
+// ==========================================
+// Mantenemos Apps Script SOLO para el login
+const API_URL_GAS = "https://script.google.com/macros/s/AKfycbwSOCQqsj_AaU2VLMGtYvlVlbG4mzBP4FmE0-XNflCss5f0bZpaOjTT2LKFaNaYMTrZ/exec?token=Macgregor281170";
+
+// INYECTA AQUÍ TUS CREDENCIALES DE SUPABASE PARA GUARDAR DATOS
+const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co/rest/v1/"; // Reemplaza con tu URL de Supabase
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; // Reemplaza con tu Anon Key
+const SUPABASE_TABLE = "registros_interventoria"; // Reemplaza con el nombre de tu tabla en Supabase
 
 let db;
 let currentUser = localStorage.getItem("user") || "";
 
-// 1. Configurar Base de Datos Offline (IndexedDB)
+// ==========================================
+// 2. CONFIGURAR BASE DE DATOS OFFLINE (IndexedDB)
+// ==========================================
 const request = indexedDB.open("InterventoriaDB", 1);
 request.onupgradeneeded = (e) => {
     db = e.target.result;
@@ -17,7 +25,9 @@ request.onsuccess = (e) => {
     checkQueue(); 
 };
 
-// 2. Control de Conectividad
+// ==========================================
+// 3. CONTROL DE CONECTIVIDAD
+// ==========================================
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
@@ -26,14 +36,16 @@ function updateOnlineStatus() {
     if (navigator.onLine) {
         ind.className = "text-xs px-2 py-1 bg-green-500 text-white rounded font-bold";
         ind.innerText = "Online";
-        if (db) { checkQueue(); } // <-- Esta es la clave: Solo revisa si la DB ya existe
+        if (db) { checkQueue(); }
     } else {
         ind.className = "text-xs px-2 py-1 bg-red-500 text-white rounded font-bold";
         ind.innerText = "Offline";
     }
 }
 
-// 3. Sistema de Login
+// ==========================================
+// 4. SISTEMA DE LOGIN (Vía Google Apps Script)
+// ==========================================
 async function login() {
     const user = document.getElementById("user").value;
     const pass = document.getElementById("pass").value;
@@ -46,8 +58,7 @@ async function login() {
     document.querySelector("#login-screen button").innerText = "Verificando...";
     
     try {
-        // La consulta debe ir por GET con todos sus parámetros
-        const urlLogin = `${API_URL}&action=login&usuario=${encodeURIComponent(user)}&clave=${encodeURIComponent(pass)}`;
+        const urlLogin = `${API_URL_GAS}&action=login&usuario=${encodeURIComponent(user)}&clave=${encodeURIComponent(pass)}`;
         
         const res = await fetch(urlLogin, {
             method: 'GET',
@@ -67,12 +78,15 @@ async function login() {
             document.querySelector("#login-screen button").innerText = "Ingresar";
         }
     } catch(err) {
-        alert("Error de conexión con el servidor.");
+        alert("Error de conexión con el servidor de autenticación.");
         console.error("Detalle del error:", err);
         document.querySelector("#login-screen button").innerText = "Ingresar";
     }
 }
-// 4. Captura GPS Inalterable
+
+// ==========================================
+// 5. CAPTURA GPS INALTERABLE
+// ==========================================
 let currentGPS = null;
 function captureGPS() {
     document.getElementById("gps-data").innerText = "Buscando satélites...";
@@ -89,24 +103,34 @@ function captureGPS() {
     );
 }
 
-// 5. Guardar Registro Localmente sin saturar la memoria del celular
+// ==========================================
+// 6. GUARDAR REGISTRO LOCALMENTE (Incluye nuevos campos)
+// ==========================================
 async function saveRecord() {
+    // Captura de variables originales
     const idPoste = document.getElementById("id_poste").value;
     const file = document.getElementById("cameraInput").files[0];
     
+    // Captura de NUEVAS variables añadidas en el HTML
+    const tipoActividad = document.getElementById("tipo_actividad")?.value || "";
+    const sectorBarrio = document.getElementById("sector_barrio")?.value || "";
+    const descripcionTrabajo = document.getElementById("descripcion_trabajo")?.value || "";
+    
+    // Validaciones estrictas
     if (!idPoste) return alert("Falta el ID del Poste.");
+    if (!tipoActividad) return alert("Falta seleccionar el Tipo de Actividad.");
+    if (!sectorBarrio) return alert("Falta escribir el Sector o Barrio.");
+    if (!descripcionTrabajo) return alert("Falta la Descripción del trabajo.");
     if (!currentGPS) return alert("Falta capturar la coordenada GPS.");
     if (!file) return alert("La fotografía es obligatoria.");
     
-    // Creamos una referencia directa y ligera al archivo sin saturar la RAM
+    // Proceso de compresión de imagen
     const imageUrl = URL.createObjectURL(file);
     const img = new Image();
     
     img.onload = function() {
-        // Liberamos la referencia temporal de memoria
         URL.revokeObjectURL(imageUrl);
         
-        // Crear un lienzo temporal para reducir drásticamente el tamaño
         const canvas = document.createElement("canvas");
         const MAX_WIDTH = 800;
         const MAX_HEIGHT = 800;
@@ -130,23 +154,30 @@ async function saveRecord() {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Comprimir la imagen a JPG con calidad del 70% (Peso final menor a 150 KB)
         const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.7);
 
+        // Estructura de datos alineada con las columnas de Supabase
         const record = {
             id_poste: idPoste.toUpperCase(),
+            tipo_actividad: tipoActividad,
+            sector_barrio: sectorBarrio,
+            descripcion_trabajo: descripcionTrabajo,
             usuario: currentUser,
             latitud: currentGPS.lat,
             longitud: currentGPS.lng,
             timestamp: new Date().toISOString(),
-            fotoBase64: fotoComprimidaBase64
+            foto_base64: fotoComprimidaBase64 // Asegúrate que en Supabase la columna se llame foto_base64 (tipo text)
         };
         
         const tx = db.transaction("registros", "readwrite");
         tx.objectStore("registros").add(record);
         tx.oncomplete = () => {
             alert("Inspección guardada exitosamente en el equipo.");
+            // Limpieza del formulario
             document.getElementById("id_poste").value = "";
+            document.getElementById("tipo_actividad").value = "";
+            document.getElementById("sector_barrio").value = "";
+            document.getElementById("descripcion_trabajo").value = "";
             document.getElementById("cameraInput").value = "";
             currentGPS = null;
             document.getElementById("gps-data").innerText = "";
@@ -162,9 +193,11 @@ async function saveRecord() {
     img.src = imageUrl;
 }
 
-// 6. Motor de Sincronización (Offline -> Online)
+// ==========================================
+// 7. MOTOR DE SINCRONIZACIÓN HACIA SUPABASE (Offline -> Online)
+// ==========================================
 function checkQueue() {
-    if (!db) return; // <-- Evita que colapse si la DB no está lista
+    if (!db) return;
     
     const tx = db.transaction("registros", "readonly");
     const store = tx.objectStore("registros");
@@ -179,8 +212,9 @@ function checkQueue() {
         }
     };
 }
+
 async function syncData() {
-    document.getElementById("btn-sync").innerText = "Enviando datos...";
+    document.getElementById("btn-sync").innerText = "Enviando a Supabase...";
     const tx = db.transaction("registros", "readonly");
     const request = tx.objectStore("registros").getAll();
     
@@ -189,38 +223,51 @@ async function syncData() {
         if(records.length === 0) return;
         
         try {
-            const res = await fetch(`${API_URL}&action=sync`, {
+            // Utilizamos la API REST de Supabase para inserción masiva (bulk insert)
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
                 method: 'POST',
-                body: JSON.stringify({ data: records })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Prefer': 'return=minimal' // Optimiza la respuesta del servidor
+                },
+                body: JSON.stringify(records) // Enviamos el array completo de registros
             });
-            const data = await res.json();
             
-            if (data.success) {
+            if (res.ok) {
+                // Si Supabase responde 200-299, borramos los datos locales
                 const txDel = db.transaction("registros", "readwrite");
                 txDel.objectStore("registros").clear();
-                alert(`¡Sincronización exitosa! ${data.synced} registros enviados.`);
+                
+                alert(`¡Sincronización exitosa! ${records.length} registros enviados a la nube.`);
                 checkQueue();
                 document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
+            } else {
+                const errorData = await res.json();
+                console.error("Error de Supabase:", errorData);
+                alert("Error en la estructura de la base de datos de Supabase. Revisa la consola.");
+                document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">'+records.length+'</span>)';
             }
         } catch(e) {
             alert("Fallo en red. Los datos siguen seguros en tu celular. Intenta cuando tengas mejor señal.");
+            console.error("Fallo de red:", e);
             document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">'+records.length+'</span>)';
         }
     };
 }
-// Activar PWA
+
+// ==========================================
+// 8. LECTOR DE CÓDIGO QR Y SERVICE WORKER
+// ==========================================
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
 }
-// Escuchadores activos de red para que el indicador cambie de inmediato
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
 
-// Ejecutar la verificación inicial al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
 });
-// 7. Lector de Código QR con la Cámara del Celular
+
 let html5QrCode = null;
 
 function startQrScanner() {
@@ -231,7 +278,6 @@ function startQrScanner() {
         html5QrCode = new Html5Qrcode("reader");
     }
     
-    // Inicia la cámara trasera del celular en modo escaneo
     html5QrCode.start(
         { facingMode: "environment" }, 
         {
@@ -239,13 +285,12 @@ function startQrScanner() {
             qrbox: { width: 250, height: 250 }
         },
         (decodedText, decodedResult) => {
-            // ¡Código leído con éxito!
             document.getElementById("id_poste").value = decodedText;
             alert("¡Código QR leído: " + decodedText + "!");
             stopQrScanner();
         },
         (errorMessage) => {
-            // Errores de escaneo en tiempo real (se ignoran para no saturar)
+            // Ignorar errores silenciosos del escáner
         }
     ).catch((err) => {
         alert("No se pudo iniciar la cámara. Asegúrate de dar permisos en el navegador.");
