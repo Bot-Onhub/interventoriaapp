@@ -46,13 +46,12 @@ async function login() {
     document.querySelector("#login-screen button").innerText = "Verificando...";
     
     try {
-        // La URL mantiene el token de seguridad, pero la acción viaja protegida por POST
-        const urlLogin = `${API_URL}&action=login`;
+        // La consulta debe ir por GET con todos sus parámetros
+        const urlLogin = `${API_URL}&action=login&usuario=${encodeURIComponent(user)}&clave=${encodeURIComponent(pass)}`;
         
         const res = await fetch(urlLogin, {
-            method: 'POST',
-            redirect: 'follow',
-            body: JSON.stringify({ usuario: user, clave: pass })
+            method: 'GET',
+            redirect: 'follow'
         });
         
         const data = await res.json();
