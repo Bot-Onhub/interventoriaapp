@@ -134,8 +134,8 @@ async function saveRecord() {
         URL.revokeObjectURL(imageUrl);
         
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = 1000; // Subimos un poco la resolución para que el texto sea legible
+        const MAX_HEIGHT = 1000;
         let width = img.width;
         let height = img.height;
 
@@ -154,10 +154,29 @@ async function saveRecord() {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
+        
+        // 1. Dibujamos la foto
         ctx.drawImage(img, 0, 0, width, height);
 
-        const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        // 2. ESTAMPADO LEGAL: Creamos un rectángulo negro semitransparente abajo
+        const altoPanel = 70;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
+        ctx.fillRect(0, height - altoPanel, width, altoPanel);
 
+        // 3. ESTAMPADO LEGAL: Escribimos los metadatos en blanco
+        ctx.fillStyle = "white";
+        ctx.font = "bold 16px Arial, sans-serif";
+        const fechaActual = new Date().toLocaleString("es-CO");
+        
+        // Primera línea de texto
+        ctx.fillText(`POSTE: ${idPoste.toUpperCase()} | FECHA: ${fechaActual}`, 15, height - 42);
+        // Segunda línea de texto
+        ctx.fillText(`GPS: Lat ${currentGPS.lat.toFixed(5)}, Lon ${currentGPS.lng.toFixed(5)} | TÉCNICO: ${currentUser}`, 15, height - 17);
+
+        // 4. Exportamos la imagen ya estampada
+        const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.8);
+
+        // De aquí en adelante es tu mismo código de guardado local
         const record = {
             id_poste: idPoste.toUpperCase(),
             tipo_actividad: tipoActividad,
@@ -170,7 +189,6 @@ async function saveRecord() {
             foto_base64: fotoComprimidaBase64
         };
         
-        // Abrir la transacción justo en el momento de guardar para evitar que se cierre
         try {
             const tx = db.transaction("registros", "readwrite");
             const store = tx.objectStore("registros");
@@ -196,8 +214,7 @@ async function saveRecord() {
             console.error("Error crítico abriendo transacción:", err);
             alert("Error al intentar escribir en la base de datos local.");
         }
-    };
-    
+    };    
     img.onerror = function() {
         URL.revokeObjectURL(imageUrl);
         alert("Error al procesar la imagen de la cámara. Intenta de nuevo.");
