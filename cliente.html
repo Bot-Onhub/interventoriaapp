@@ -54,13 +54,19 @@
         .modal-img { max-width: 100%; max-height: 80vh; border-radius: 0.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); object-fit: contain; }
 
         /* Estilos específicos para impresión / PDF corporativo */
+        /* Estilos específicos para impresión / PDF corporativo */
         @media print {
             body { background-color: #ffffff; color: #000000; }
-            header, .controls-card, .btn, th:last-child, td:last-child, .no-print { display: none !important; }
-            .table-container { box-shadow: none; border: 1px solid #ccc; }
-            table { width: 100%; font-size: 10pt; }
-            th, td { padding: 6px; border: 1px solid #ddd; }
+            /* Ocultamos paneles de control, pero NO la columna de fotos */
+            header, .controls-card, .btn, #login-cliente-screen, .no-print { display: none !important; }
+            .table-container { box-shadow: none; border: 1px solid #ccc; overflow: visible; }
+            table { width: 100%; font-size: 10pt; border-collapse: collapse; page-break-inside: auto; }
+            /* Evita que una fila (y su foto) se corte a la mitad en el salto de página del PDF */
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th, td { padding: 8px; border: 1px solid #000; vertical-align: middle; }
             .print-header { display: block !important; margin-bottom: 20px; text-align: center; }
+            /* Ampliamos la foto en el PDF para que sirva como evidencia real */
+            .thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #999; }
         }
         .print-header { display: none; }
     </style>
