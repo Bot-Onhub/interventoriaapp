@@ -5,23 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal de Clientes - Interventoría</title>
     <style>
-        /* Estilos base nativos robustos (Independientes de internet o CDNs) */
+        /* Estilos base nativos robustos */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #f1f5f9; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; }
         .hidden { display: none !important; }
         
-        /* Contenedores y Tarjetas */
         .flex-center { display: flex; align-items: center; justify-content: center; }
         .min-screen { min-height: 100vh; }
         .card { background: #ffffff; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
         
-        /* Formularios */
         .form-group { margin-bottom: 1rem; }
         .form-label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #475569; margin-bottom: 0.25rem; }
         .form-input { width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; outline: none; font-size: 0.9rem; }
         .form-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
         
-        /* Botones */
         .btn { width: 100%; padding: 0.75rem; border: none; border-radius: 0.5rem; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
         .btn-blue { background-color: #2563eb; color: #ffffff; }
         .btn-blue:hover { background-color: #1d4ed8; }
@@ -31,30 +28,41 @@
         .btn-gray:hover { background-color: #cbd5e1; }
         .btn-emerald { background-color: #059669; color: #ffffff; padding: 0.5rem 1rem; font-size: 0.75rem; border-radius: 0.375rem; font-weight: bold; cursor: pointer; border: none; }
         .btn-emerald:hover { background-color: #047857; }
+        .btn-indigo { background-color: #4f46e5; color: #ffffff; padding: 0.5rem 1rem; font-size: 0.75rem; border-radius: 0.375rem; font-weight: bold; cursor: pointer; border: none; }
+        .btn-indigo:hover { background-color: #4338ca; }
 
-        /* Header y Navegación */
         header { background-color: #0f172a; color: #ffffff; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Main y Controles */
         main { flex-grow: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 2rem 1rem; }
-        .controls-bar { background: #ffffff; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
         
-        /* Tablas */
+        /* Panel de Control y Filtros */
+        .controls-card { background: #ffffff; padding: 1.25rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; align-items: end; }
+
         .table-container { background: #ffffff; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 0.75rem; text-transform: uppercase; padding: 0.75rem; font-weight: 700; }
         td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; font-size: 0.875rem; color: #334155; }
         tr:hover { background-color: #f8fafc; }
 
-        /* Elementos Auxiliares */
         .badge { background-color: #dbeafe; color: #1e40af; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-weight: 650; }
         .thumbnail { width: 40px; height: 40px; object-fit: cover; border-radius: 0.25rem; border: 1px solid #cbd5e1; cursor: pointer; }
         
-        /* Modal de Imagen */
         .modal { position: fixed; inset: 0; background-color: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
         .modal-content { max-width: 90vw; max-height: 90vh; text-align: center; }
         .modal-img { max-width: 100%; max-height: 80vh; border-radius: 0.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); object-fit: contain; }
+
+        /* Estilos específicos para impresión / PDF corporativo */
+        @media print {
+            body { background-color: #ffffff; color: #000000; }
+            header, .controls-card, .btn, th:last-child, td:last-child, .no-print { display: none !important; }
+            .table-container { box-shadow: none; border: 1px solid #ccc; }
+            table { width: 100%; font-size: 10pt; }
+            th, td { padding: 6px; border: 1px solid #ddd; }
+            .print-header { display: block !important; margin-bottom: 20px; text-align: center; }
+        }
+        .print-header { display: none; }
     </style>
 </head>
 <body>
@@ -101,18 +109,41 @@
 
         <!-- Contenido Principal -->
         <main>
-            <!-- Panel de Control / Acciones -->
-            <div class="controls-bar">
-                <div style="font-weight: 500; font-size: 0.9rem;">
-                    Total de inspecciones registradas: <span id="total-registros" style="font-weight: bold; color: #2563eb;">0</span>
+            <!-- Cabecera invisible que aparece solo al exportar a PDF -->
+            <div class="print-header">
+                <h2 style="font-size: 18pt; font-weight: bold;">REPORTE OFICIAL DE INTERVENTORÍA</h2>
+                <p style="font-size: 10pt; color: #555;">Sistema de Gestión de Alumbrado Público - Evidencias de Campo</p>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #000;">
+            </div>
+
+            <!-- Panel de Controles y Filtros -->
+            <div class="controls-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="font-weight: 500; font-size: 0.9rem;">
+                        Registros encontrados: <span id="total-registros" style="font-weight: bold; color: #2563eb;">0</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button onclick="cargarRegistrosCliente()" class="btn-gray">Actualizar</button>
+                        <button onclick="exportarCSV()" class="btn-emerald">Exportar CSV</button>
+                        <button onclick="exportarPDF()" class="btn-indigo">Descargar PDF</button>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button onclick="cargarRegistrosCliente()" class="btn-gray">
-                        Actualizar Datos
-                    </button>
-                    <button onclick="exportarCSV()" class="btn-emerald">
-                        Exportar Reporte (CSV)
-                    </button>
+
+                <!-- Filtros Interactivos -->
+                <div class="filters-grid">
+                    <div>
+                        <label class="form-label">Buscar por ID Poste / Sector / Técnico</label>
+                        <input type="text" id="filtro-texto" class="form-input" placeholder="Ej: TEST 5, Centro..." oninput="aplicarFiltros()">
+                    </div>
+                    <div>
+                        <label class="form-label">Filtrar por Actividad</label>
+                        <select id="filtro-actividad" class="form-input" onchange="aplicarFiltros()">
+                            <option value="">Todas las actividades</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="limpiarFiltros()" class="btn-gray" style="width: 100%;">Limpiar Filtros</button>
+                    </div>
                 </div>
             </div>
 
@@ -149,9 +180,8 @@
 
     <!-- Script de Conexión y Lógica -->
     <script>
-        // CONFIGURACIÓN DE SUPABASE (Tus credenciales reales)
-        const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; // Reemplaza con tu URL de Supabase
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; // Reemplaza con tu Anon Key
+        const SUPABASE_URL = "https://TU_PROYECTO.supabase.co"; // Tus datos reales
+        const SUPABASE_ANON_KEY = "TU_CLAVE_ANONIMA_AQUI"; // Tus datos reales
         const SUPABASE_TABLE = "registros_interventoria";
 
         function loginCliente() {
@@ -187,6 +217,7 @@
         });
 
         let datosCache = [];
+        let datosFiltrados = [];
 
         async function cargarRegistrosCliente() {
             const tbody = document.getElementById("tabla-registros");
@@ -194,8 +225,6 @@
 
             try {
                 const urlPeticion = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=id.desc`;
-                console.log("Consultando a:", urlPeticion);
-
                 const res = await fetch(urlPeticion, {
                     method: 'GET',
                     headers: {
@@ -204,44 +233,87 @@
                     }
                 });
 
-                if (!res.ok) {
-                    const textoError = await res.text();
-                    throw new Error(`Error HTTP ${res.status}: ${textoError}`);
-                }
+                if (!res.ok) throw new Error("Error al consultar la base de datos.");
 
                 datosCache = await res.json();
-                document.getElementById("total-registros").innerText = datosCache.length;
-
-                if (!Array.isArray(datosCache) || datosCache.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #d97706;">La consulta fue exitosa, pero la tabla '${SUPABASE_TABLE}' devolvió 0 registros.</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = "";
-                datosCache.forEach(reg => {
-                    const fechaFormateada = reg.timestamp ? new Date(reg.timestamp).toLocaleString() : "N/D";
-                    const tr = document.createElement("tr");
-
-                    tr.innerHTML = `
-                        <td style="font-weight: bold; color: #0f172a;">${reg.id_poste || 'N/D'}</td>
-                        <td><span class="badge">${reg.tipo_actividad || 'N/D'}</span></td>
-                        <td>${reg.sector_barrio || 'N/D'}</td>
-                        <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${reg.descripcion_trabajo || ''}">${reg.descripcion_trabajo || 'N/D'}</td>
-                        <td style="color: #64748b;">${reg.usuario || 'N/D'}</td>
-                        <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${reg.latitud}, ${reg.longitud}</td>
-                        <td style="font-size: 0.75rem; color: #64748b;">${fechaFormateada}</td>
-                        <td style="text-align: center;">
-                            ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.foto_base64}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                datosFiltrados = [...datosCache];
+                
+                poblarSelectActividades(datosCache);
+                renderizarTabla(datosFiltrados);
 
             } catch (err) {
                 console.error("Fallo detallado:", err);
                 tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #dc2626;">Fallo al cargar: ${err.message}</td></tr>`;
             }
         }
+
+        function poblarSelectActividades(data) {
+            const select = document.getElementById("filtro-actividad");
+            const actividadesUnicas = [...new Set(data.map(item => item.tipo_actividad).filter(Boolean))];
+            
+            let html = '<option value="">Todas las actividades</option>';
+            actividadesUnicas.forEach(act => {
+                html += `<option value="${act}">${act}</option>`;
+            });
+            select.innerHTML = html;
+        }
+
+        function aplicarFiltros() {
+            const texto = document.getElementById("filtro-texto").value.toLowerCase();
+            const actividadSeleccionada = document.getElementById("filtro-actividad").value;
+
+            datosFiltrados = datosCache.filter(reg => {
+                const matchTexto = 
+                    (reg.id_poste && reg.id_poste.toLowerCase().includes(texto)) ||
+                    (reg.sector_barrio && reg.sector_barrio.toLowerCase().includes(texto)) ||
+                    (reg.usuario && reg.usuario.toLowerCase().includes(texto)) ||
+                    (reg.descripcion_trabajo && reg.descripcion_trabajo.toLowerCase().includes(texto));
+
+                const matchActividad = actividadSeleccionada === "" || reg.tipo_actividad === actividadSeleccionada;
+
+                return matchTexto && matchActividad;
+            });
+
+            renderizarTabla(datosFiltrados);
+        }
+
+        function limpiarFiltros() {
+            document.getElementById("filtro-texto").value = "";
+            document.getElementById("filtro-actividad").value = "";
+            datosFiltrados = [...datosCache];
+            renderizarTabla(datosFiltrados);
+        }
+
+        function renderizarTabla(data) {
+            const tbody = document.getElementById("tabla-registros");
+            document.getElementById("total-registros").innerText = data.length;
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #d97706;">No se encontraron registros con los filtros seleccionados.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = "";
+            data.forEach(reg => {
+                const fechaFormateada = reg.timestamp ? new Date(reg.timestamp).toLocaleString() : "N/D";
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+                    <td style="font-weight: bold; color: #0f172a;">${reg.id_poste || 'N/D'}</td>
+                    <td><span class="badge">${reg.tipo_actividad || 'N/D'}</span></td>
+                    <td>${reg.sector_barrio || 'N/D'}</td>
+                    <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${reg.descripcion_trabajo || ''}">${reg.descripcion_trabajo || 'N/D'}</td>
+                    <td style="color: #64748b;">${reg.usuario || 'N/D'}</td>
+                    <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${reg.latitud}, ${reg.longitud}</td>
+                    <td style="font-size: 0.75rem; color: #64748b;">${fechaFormateada}</td>
+                    <td style="text-align: center;">
+                        ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.foto_base64}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         function verFotoGrande(url) {
             document.getElementById("img-modal").src = url;
             document.getElementById("modal-foto").classList.remove("hidden");
@@ -252,11 +324,11 @@
         }
 
         function exportarCSV() {
-            if (datosCache.length === 0) return alert("No hay datos para exportar.");
+            if (datosFiltrados.length === 0) return alert("No hay datos para exportar.");
 
             let csvContent = "\uFEFFID Poste,Tipo Actividad,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,URL Foto\n";
             
-            datosCache.forEach(r => {
+            datosFiltrados.forEach(r => {
                 const fila = [
                     `"${r.id_poste || ''}"`,
                     `"${r.tipo_actividad || ''}"`,
@@ -279,6 +351,12 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+        }
+
+        function exportarPDF() {
+            if (datosFiltrados.length === 0) return alert("No hay datos para generar el PDF.");
+            // Abre el cuadro de impresión nativo optimizado para PDF corporativo
+            window.print();
         }
     </script>
 </body>
