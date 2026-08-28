@@ -6,6 +6,8 @@
     <title>Captura de Terreno - AaaS</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- CDN de Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Variables de color y diseño corporativo */
         :root {
@@ -244,7 +246,23 @@
         <input type="file" accept="image/*" capture="environment" id="cameraInput">
         
         <button onclick="saveRecord()" class="btn-success">Guardar Inspección Local</button>
-        
+        <!-- Selección de Tipo de Actividad -->
+<label for="tipo_actividad">Tipo de Intervención:</label>
+<select id="tipo_actividad" required>
+  <option value="MANTENIMIENTO_PREVENTIVO">Mantenimiento Preventivo</option>
+  <option value="MANTENIMIENTO_CORRECTIVO">Mantenimiento Correctivo</option>
+  <option value="ACTUALIZACION_TECNOLOGICA">Modernización / Actualización</option>
+  <option value="INSPECCION_INVENTARIO">Inspección de Inventario</option>
+  <option value="EMERGENCIA">Atención de Emergencia</option>
+</select>
+
+<!-- Sector / Barrio -->
+<label for="sector_barrio">Sector / Barrio:</label>
+<input type="text" id="sector_barrio" placeholder="Ej: Sector Centro - Circuito 3" required />
+
+<!-- Descripción de la labor realizada -->
+<label for="descripcion_trabajo">Descripción de la Labor:</label>
+<textarea id="descripcion_trabajo" rows="3" placeholder="Detalle los elementos cambiados o el trabajo ejecutado..." required></textarea>
         <!-- Botón de Sincronización oculto por defecto -->
         <button onclick="syncData()" id="btn-sync" class="btn-warning hidden">
             Sincronizar Pendientes (<span id="queue-count">0</span>)
