@@ -107,16 +107,13 @@ function captureGPS() {
 // 6. GUARDAR REGISTRO LOCALMENTE (Incluye nuevos campos)
 // ==========================================
 async function saveRecord() {
-    // Captura de variables originales
     const idPoste = document.getElementById("id_poste").value;
     const file = document.getElementById("cameraInput").files[0];
     
-    // Captura de NUEVAS variables añadidas en el HTML
     const tipoActividad = document.getElementById("tipo_actividad")?.value || "";
     const sectorBarrio = document.getElementById("sector_barrio")?.value || "";
     const descripcionTrabajo = document.getElementById("descripcion_trabajo")?.value || "";
     
-    // Validaciones estrictas
     if (!idPoste) return alert("Falta el ID del Poste.");
     if (!tipoActividad) return alert("Falta seleccionar el Tipo de Actividad.");
     if (!sectorBarrio) return alert("Falta escribir el Sector o Barrio.");
@@ -124,7 +121,12 @@ async function saveRecord() {
     if (!currentGPS) return alert("Falta capturar la coordenada GPS.");
     if (!file) return alert("La fotografía es obligatoria.");
     
-    // Proceso de compresión de imagen
+    // Validar que la base de datos esté lista antes de procesar
+    if (!db) {
+        alert("La base de datos local no está lista. Recarga la página.");
+        return;
+    }
+    
     const imageUrl = URL.createObjectURL(file);
     const img = new Image();
     
@@ -156,7 +158,6 @@ async function saveRecord() {
 
         const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.7);
 
-        // Estructura de datos alineada con las columnas de Supabase
         const record = {
             id_poste: idPoste.toUpperCase(),
             tipo_actividad: tipoActividad,
@@ -166,23 +167,35 @@ async function saveRecord() {
             latitud: currentGPS.lat,
             longitud: currentGPS.lng,
             timestamp: new Date().toISOString(),
-            foto_base64: fotoComprimidaBase64 // Asegúrate que en Supabase la columna se llame foto_base64 (tipo text)
+            foto_base64: fotoComprimidaBase64
         };
         
-        const tx = db.transaction("registros", "readwrite");
-        tx.objectStore("registros").add(record);
-        tx.oncomplete = () => {
-            alert("Inspección guardada exitosamente en el equipo.");
-            // Limpieza del formulario
-            document.getElementById("id_poste").value = "";
-            document.getElementById("tipo_actividad").value = "";
-            document.getElementById("sector_barrio").value = "";
-            document.getElementById("descripcion_trabajo").value = "";
-            document.getElementById("cameraInput").value = "";
-            currentGPS = null;
-            document.getElementById("gps-data").innerText = "";
-            checkQueue();
-        };
+        // Abrir la transacción justo en el momento de guardar para evitar que se cierre
+        try {
+            const tx = db.transaction("registros", "readwrite");
+            const store = tx.objectStore("registros");
+            store.add(record);
+            
+            tx.oncomplete = () => {
+                alert("Inspección guardada exitosamente en el equipo.");
+                document.getElementById("id_poste").value = "";
+                document.getElementById("tipo_actividad").value = "";
+                document.getElementById("sector_barrio").value = "";
+                document.getElementById("descripcion_trabajo").value = "";
+                document.getElementById("cameraInput").value = "";
+                currentGPS = null;
+                document.getElementById("gps-data").innerText = "";
+                checkQueue();
+            };
+
+            tx.onerror = (e) => {
+                console.error("Error en transacción IndexedDB:", e);
+                alert("Error al guardar localmente en el equipo.");
+            };
+        } catch (err) {
+            console.error("Error crítico abriendo transacción:", err);
+            alert("Error al intentar escribir en la base de datos local.");
+        }
     };
     
     img.onerror = function() {
@@ -192,7 +205,6 @@ async function saveRecord() {
     
     img.src = imageUrl;
 }
-
 // ==========================================
 // 7. MOTOR DE SINCRONIZACIÓN HACIA SUPABASE (Offline -> Online)
 // ==========================================
