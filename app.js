@@ -46,7 +46,7 @@ async function login() {
     document.querySelector("#login-screen button").innerText = "Verificando...";
     
     try {
-        const urlLogin = `${API_URL}?action=login&usuario=${user}&clave=${pass}`;
+        const urlLogin = `${API_URL}&action=login&usuario=${user}&clave=${pass}`;
         
         const res = await fetch(urlLogin, {
             method: 'GET',
@@ -188,7 +188,7 @@ async function syncData() {
         if(records.length === 0) return;
         
         try {
-            const res = await fetch(`${API_URL}?action=sync`, {
+            const res = await fetch(`${API_URL}&action=sync`, { ...
                 method: 'POST',
                 body: JSON.stringify({ data: records })
             });
