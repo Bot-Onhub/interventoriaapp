@@ -172,20 +172,19 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg";
         const SUPABASE_TABLE = "registros_interventoria";
 
-       async function loginCliente() {
+      async function loginCliente() {
     const email = document.getElementById("cliente_user").value.trim().toLowerCase();
     const pass = document.getElementById("cliente_pass").value.trim();
 
     if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
 
-    document.querySelector("#login-cliente-screen button").innerText = "Autenticando...";
+    document.querySelector("#login-cliente-screen button").innerText = "Verificando...";
 
     try {
-        // Estructura original probada de Supabase
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        const res = await fetch("https://onxhuhjimbucnomwwcsn.supabase.co/auth/v1/token?grant_type=password", {
             method: 'POST',
             headers: {
-                'apikey': SUPABASE_ANON_KEY,
+                'apikey': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMzg3MTAsImV4cCI6MjA1NjgxNDcxMH0.a06M37X66XFpY3C_tV4_3NnL5M4_5K3N_8J7X_2Q1M0",
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ email: email, password: pass })
@@ -193,17 +192,11 @@
 
         const data = await res.json();
 
-        // AUDITORÍA ESTRICTA: Mostrar qué dice exactamente el servidor
-        console.log("=== DIAGNÓSTICO DE CONEXIÓN ===");
-        console.log("Status HTTP:", res.status);
-        console.log("Respuesta Cruda:", data);
-
+        // Si Supabase rechaza la petición, esto mostrará el motivo real y el código HTTP
         if (!res.ok) {
-            // Si falla, el alert mostrará el error TÉCNICO, no uno inventado
-            throw new Error(`[HTTP ${res.status}] ${data.error_description || data.msg || JSON.stringify(data)}`);
+            throw new Error(`HTTP ${res.status}: ${data.error_description || data.msg || JSON.stringify(data)}`);
         }
 
-        // Si es exitoso, guardar credenciales
         localStorage.setItem("supabase_access_token", data.access_token);
         localStorage.setItem("cliente_email", email);
 
@@ -211,9 +204,14 @@
         document.getElementById("login-cliente-screen").classList.add("hidden");
         document.getElementById("app-cliente-screen").classList.remove("hidden");
         
-        if (typeof cargarRegistrosCliente === "function") {
-            cargarRegistrosCliente();
-        }
+        cargarRegistrosCliente();
+
+    } catch (err) {
+        alert("Error real del servidor: " + err.message);
+    } finally {
+        document.querySelector("#login-cliente-screen button").innerText = "Ingresar al Panel";
+    }
+}
 
     } catch (err) {
         // Muestra el error exacto en pantalla
