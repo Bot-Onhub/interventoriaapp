@@ -216,8 +216,9 @@
 
                 const data = await res.json();
 
-                if (data.error) {
-                    throw new Error(data.error_description || data.error.message);
+               if (data.error) {
+                    // Esto te dirá exactamente qué error devolvió Supabase en el celular
+                    throw new Error(JSON.stringify(data));
                 }
 
                 // Guardamos el token de seguridad seguro, no solo el nombre
