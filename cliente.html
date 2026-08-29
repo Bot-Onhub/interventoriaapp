@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal de Clientes - Interventoría</title>
     <style>
+        /* Estilos base nativos robustos */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #f1f5f9; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; }
         .hidden { display: none !important; }
@@ -35,6 +36,7 @@
         
         main { flex-grow: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 2rem 1rem; }
         
+        /* Panel de Control y Filtros */
         .controls-card { background: #ffffff; padding: 1.25rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
         .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; align-items: end; }
 
@@ -51,14 +53,19 @@
         .modal-content { max-width: 90vw; max-height: 90vh; text-align: center; }
         .modal-img { max-width: 100%; max-height: 80vh; border-radius: 0.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); object-fit: contain; }
 
+        /* Estilos específicos para impresión / PDF corporativo */
+        /* Estilos específicos para impresión / PDF corporativo */
         @media print {
             body { background-color: #ffffff; color: #000000; }
+            /* Ocultamos paneles de control, pero NO la columna de fotos */
             header, .controls-card, .btn, #login-cliente-screen, .no-print { display: none !important; }
             .table-container { box-shadow: none; border: 1px solid #ccc; overflow: visible; }
             table { width: 100%; font-size: 10pt; border-collapse: collapse; page-break-inside: auto; }
+            /* Evita que una fila (y su foto) se corte a la mitad en el salto de página del PDF */
             tr { page-break-inside: avoid; page-break-after: auto; }
             th, td { padding: 8px; border: 1px solid #000; vertical-align: middle; }
             .print-header { display: block !important; margin-bottom: 20px; text-align: center; }
+            /* Ampliamos la foto en el PDF para que sirva como evidencia real */
             .thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #999; }
         }
         .print-header { display: none; }
@@ -66,6 +73,7 @@
 </head>
 <body>
 
+    <!-- Pantalla de Login del Cliente -->
     <div id="login-cliente-screen" class="flex-center min-screen">
         <div class="card">
             <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; text-align: center; color: #0f172a;">Portal de Interventoría</h2>
@@ -73,7 +81,7 @@
             
             <div>
                 <div class="form-group">
-                    <label class="form-label">Correo o Usuario</label>
+                    <label class="form-label">Usuario</label>
                     <input type="text" id="cliente_user" class="form-input" placeholder="Ingresa tu usuario">
                 </div>
                 <div class="form-group">
@@ -87,7 +95,9 @@
         </div>
     </div>
 
+    <!-- Pantalla Principal del Panel de Cliente -->
     <div id="app-cliente-screen" class="hidden min-screen" style="display: flex; flex-direction: column;">
+        <!-- Barra Superior -->
         <header>
             <div class="header-container">
                 <div>
@@ -103,13 +113,16 @@
             </div>
         </header>
 
+        <!-- Contenido Principal -->
         <main>
+            <!-- Cabecera invisible que aparece solo al exportar a PDF -->
             <div class="print-header">
                 <h2 style="font-size: 18pt; font-weight: bold;">REPORTE OFICIAL DE INTERVENTORÍA</h2>
                 <p style="font-size: 10pt; color: #555;">Sistema de Gestión de Alumbrado Público - Evidencias de Campo</p>
                 <hr style="margin: 10px 0; border: 0; border-top: 1px solid #000;">
             </div>
 
+            <!-- Panel de Controles y Filtros -->
             <div class="controls-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div style="font-weight: 500; font-size: 0.9rem;">
@@ -122,6 +135,7 @@
                     </div>
                 </div>
 
+                <!-- Filtros Interactivos -->
                 <div class="filters-grid">
                     <div>
                         <label class="form-label">Buscar por ID Poste / Sector / Técnico</label>
@@ -139,6 +153,7 @@
                 </div>
             </div>
 
+            <!-- Tabla de Datos -->
             <div class="table-container">
                 <table>
                     <thead>
@@ -154,12 +169,14 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-registros">
+                        <!-- Los registros se cargan dinámicamente aquí -->
                     </tbody>
                 </table>
             </div>
         </main>
     </div>
 
+    <!-- Modal para ver la foto en grande -->
     <div id="modal-foto" class="hidden modal" onclick="cerrarModalFoto()">
         <div class="modal-content">
             <img id="img-modal" src="" class="modal-img">
@@ -167,64 +184,38 @@
         </div>
     </div>
 
+    <!-- Script de Conexión y Lógica -->
     <script>
-        const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg";
+        const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; // Reemplaza con tu URL de Supabase
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; // Reemplaza con tu Anon Key
         const SUPABASE_TABLE = "registros_interventoria";
 
-        async function loginCliente() {
-            const email = document.getElementById("cliente_user").value.trim().toLowerCase();
-            const pass = document.getElementById("cliente_pass").value.trim();
+        function loginCliente() {
+            const user = document.getElementById("cliente_user").value;
+            const pass = document.getElementById("cliente_pass").value;
 
-            if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
-
-            document.querySelector("#login-cliente-screen button").innerText = "Autenticando...";
-
-            try {
-                const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email: email, password: pass })
-                });
-
-                const data = await res.json();
-
-                if (data.error || data.error_description) {
-                    throw new Error(data.error_description || data.error.message || "Credenciales inválidas");
-                }
-
-                localStorage.setItem("supabase_access_token", data.access_token);
-                localStorage.setItem("cliente_email", email);
-
-                document.getElementById("welcome-user").innerText = `Usuario: ${email}`;
+            if (user && pass) {
+                localStorage.setItem("cliente_user", user);
+                document.getElementById("welcome-user").innerText = `Usuario: ${user}`;
                 document.getElementById("login-cliente-screen").classList.add("hidden");
                 document.getElementById("app-cliente-screen").classList.remove("hidden");
-                
                 cargarRegistrosCliente();
-
-            } catch (err) {
-                alert("Error de acceso: " + err.message);
-            } finally {
-                document.querySelector("#login-cliente-screen button").innerText = "Ingresar al Panel";
+            } else {
+                alert("Por favor ingresa usuario y contraseña.");
             }
         }
 
         function logoutCliente() {
-            localStorage.removeItem("supabase_access_token");
-            localStorage.removeItem("cliente_email");
+            localStorage.removeItem("cliente_user");
             document.getElementById("app-cliente-screen").classList.add("hidden");
             document.getElementById("login-cliente-screen").classList.remove("hidden");
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            const savedToken = localStorage.getItem("supabase_access_token");
-            const savedEmail = localStorage.getItem("cliente_email");
-            if (savedToken && savedEmail) {
-                document.getElementById("cliente_user").value = savedEmail;
-                document.getElementById("welcome-user").innerText = `Usuario: ${savedEmail}`;
+            const savedUser = localStorage.getItem("cliente_user");
+            if (savedUser) {
+                document.getElementById("cliente_user").value = savedUser;
+                document.getElementById("welcome-user").innerText = `Usuario: ${savedUser}`;
                 document.getElementById("login-cliente-screen").classList.add("hidden");
                 document.getElementById("app-cliente-screen").classList.remove("hidden");
                 cargarRegistrosCliente();
@@ -239,18 +230,16 @@
             tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">Cargando registros desde la nube...</td></tr>`;
 
             try {
-                const tokenAutenticado = localStorage.getItem("supabase_access_token");
                 const urlPeticion = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=id.desc`;
-                
                 const res = await fetch(urlPeticion, {
                     method: 'GET',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${tokenAutenticado}`
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
                     }
                 });
 
-                if (!res.ok) throw new Error("Sesión expirada o sin permisos.");
+                if (!res.ok) throw new Error("Error al consultar la base de datos.");
 
                 datosCache = await res.json();
                 datosFiltrados = [...datosCache];
@@ -306,7 +295,7 @@
             document.getElementById("total-registros").innerText = data.length;
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #d97706;">No se encontraron registros.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #d97706;">No se encontraron registros con los filtros seleccionados.</td></tr>`;
                 return;
             }
 
@@ -372,6 +361,7 @@
 
         function exportarPDF() {
             if (datosFiltrados.length === 0) return alert("No hay datos para generar el PDF.");
+            // Abre el cuadro de impresión nativo optimizado para PDF corporativo
             window.print();
         }
     </script>
