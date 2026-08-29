@@ -191,8 +191,13 @@
         const SUPABASE_TABLE = "registros_interventoria";
 
         async function loginCliente() {
-            const email = document.getElementById("cliente_user").value;
-            const pass = document.getElementById("cliente_pass").value;
+            async function loginCliente() {
+            // .trim() borra espacios invisibles y .toLowerCase() pasa todo a minúsculas
+            const email = document.getElementById("cliente_user").value.trim().toLowerCase();
+            const pass = document.getElementById("cliente_pass").value.trim();
+
+            if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
+                    
 
             if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
 
