@@ -172,45 +172,50 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg";
         const SUPABASE_TABLE = "registros_interventoria";
 
-        async function loginCliente() {
-            const email = document.getElementById("cliente_user").value.trim().toLowerCase();
-            const pass = document.getElementById("cliente_pass").value.trim();
+       async function loginCliente() {
+    const email = document.getElementById("cliente_user").value.trim().toLowerCase();
+    const pass = document.getElementById("cliente_pass").value.trim();
 
-            if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
+    if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
 
-            document.querySelector("#login-cliente-screen button").innerText = "Autenticando...";
+    document.querySelector("#login-cliente-screen button").innerText = "Autenticando...";
 
-            try {
-                const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email: email, password: pass })
-                });
+    try {
+        // Estructuración de datos compatible con OAuth2 / Supabase Auth
+        const bodyData = new URLSearchParams();
+        bodyData.append('email', email);
+        bodyData.append('password', pass);
 
-                const data = await res.json();
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: bodyData.toString()
+        });
 
-                if (data.error || data.error_description) {
-                    throw new Error(data.error_description || data.error.message || "Credenciales inválidas");
-                }
+        const data = await res.json();
 
-                localStorage.setItem("supabase_access_token", data.access_token);
-                localStorage.setItem("cliente_email", email);
-
-                document.getElementById("welcome-user").innerText = `Usuario: ${email}`;
-                document.getElementById("login-cliente-screen").classList.add("hidden");
-                document.getElementById("app-cliente-screen").classList.remove("hidden");
-                
-                cargarRegistrosCliente();
-
-            } catch (err) {
-                alert("Error de acceso: " + err.message);
-            } finally {
-                document.querySelector("#login-cliente-screen button").innerText = "Ingresar al Panel";
-            }
+        if (data.error || data.error_description) {
+            throw new Error(data.error_description || data.error_description || data.msg || "Credenciales inválidas");
         }
+
+        localStorage.setItem("supabase_access_token", data.access_token);
+        localStorage.setItem("cliente_email", email);
+
+        document.getElementById("welcome-user").innerText = `Usuario: ${email}`;
+        document.getElementById("login-cliente-screen").classList.add("hidden");
+        document.getElementById("app-cliente-screen").classList.remove("hidden");
+        
+        cargarRegistrosCliente();
+
+    } catch (err) {
+        alert("Error de acceso: " + err.message);
+    } finally {
+        document.querySelector("#login-cliente-screen button").innerText = "Ingresar al Panel";
+    }
+}
 
         function logoutCliente() {
             localStorage.removeItem("supabase_access_token");
