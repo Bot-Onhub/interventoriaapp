@@ -122,6 +122,7 @@ async function saveRecord() {
     
     if (!idPoste) return alert("Falta el ID del Poste.");
     if (!tipoActividad) return alert("Falta seleccionar el Tipo de Actividad.");
+    const estadoIncidencia = document.getElementById("estado_incidencia").value;
     if (!sectorBarrio) return alert("Falta escribir el Sector o Barrio.");
     if (!descripcionTrabajo) return alert("Falta la Descripción del trabajo.");
     if (!currentGPS) return alert("Falta capturar la coordenada GPS.");
