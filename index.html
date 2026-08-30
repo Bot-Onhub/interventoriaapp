@@ -265,6 +265,16 @@
   <option value="INSPECCION_INVENTARIO">Inspección de Inventario</option>
   <option value="EMERGENCIA">Atención de Emergencia</option>
 </select>
+        <!-- NUEVO: Selector de Estado / Incidencia exigido en campo -->
+<div class="form-group">
+    <label class="form-label">Estado Operativo / Hallazgo</label>
+    <select id="estado_incidencia" class="form-input" style="border-color: #2563eb; background-color: #f8fafc;">
+        <option value="OPERATIVA">🟢 OPERATIVA (Funcionando Correctamente)</option>
+        <option value="APAGADA">🔴 APAGADA / FUERA DE SERVICIO</option>
+        <option value="INTERMITENTE">🟠 INTERMITENTE / PARpadea</option>
+        <option value="DAÑO FÍSICO">⚠️ DAÑO FÍSICO / POSTE AFECTADO / CABLE</option>
+    </select>
+</div>
 
 <!-- Sector / Barrio -->
 <label for="sector_barrio">Sector / Barrio:</label>
