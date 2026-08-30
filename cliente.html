@@ -33,6 +33,8 @@
         .btn-emerald:hover { background-color: #047857; }
         .btn-indigo { background-color: #4f46e5; color: #ffffff; padding: 0.5rem 1rem; font-size: 0.75rem; border-radius: 0.375rem; font-weight: bold; cursor: pointer; border: none; }
         .btn-indigo:hover { background-color: #4338ca; }
+        .btn-action { background-color: #0284c7; color: #ffffff; padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: 0.25rem; font-weight: bold; cursor: pointer; border: none; }
+        .btn-action:hover { background-color: #0369a1; }
 
         header { background-color: #0f172a; color: #ffffff; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
@@ -40,15 +42,16 @@
         main { flex-grow: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 2rem 1rem; }
         
         /* Dashboard métricas RETILAP */
-        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
         .metric-card { background: #ffffff; padding: 1rem 1.25rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #2563eb; }
         .metric-card.emerald { border-left-color: #059669; }
         .metric-card.indigo { border-left-color: #4f46e5; }
+        .metric-card.amber { border-left-color: #d97706; }
         .metric-title { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; }
         .metric-value { font-size: 1.5rem; font-weight: bold; color: #0f172a; margin-top: 0.25rem; }
 
         .controls-card { background: #ffffff; padding: 1.25rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
-        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; align-items: end; }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 1rem; align-items: end; }
 
         .map-card { background: #ffffff; padding: 1.25rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; position: relative; z-index: 1; }
         #map { width: 100%; height: 380px; border-radius: 0.375rem; position: relative; z-index: 1; }
@@ -65,7 +68,11 @@
         td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; font-size: 0.875rem; color: #334155; }
         tr:hover { background-color: #f8fafc; }
 
-        .badge { background-color: #dbeafe; color: #1e40af; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-weight: 650; }
+        .badge { background-color: #dbeafe; color: #1e40af; font-size: 0.7rem; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-weight: 650; }
+        .badge-falla { background-color: #fee2e2; color: #991b1b; }
+        .badge-ok { background-color: #d1fae5; color: #065f46; }
+        .badge-atendida { background-color: #e0e7ff; color: #3730a3; }
+
         .thumbnail { width: 40px; height: 40px; object-fit: cover; border-radius: 0.25rem; border: 1px solid #cbd5e1; cursor: pointer; }
         
         .modal { position: fixed; inset: 0; background-color: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
@@ -74,15 +81,15 @@
 
         @media print {
             body { background-color: #ffffff; color: #000000; }
-            header, .controls-card, .map-card, .collapsible-card, .btn, #login-cliente-screen, .no-print { display: none !important; }
-            .metrics-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 10px !important; margin-bottom: 15px !important; }
-            .metric-card { border: 1px solid #000 !important; box-shadow: none !important; padding: 10px !important; }
+            header, .controls-card, .map-card, .collapsible-card, .btn, #login-cliente-screen, .no-print, .btn-action { display: none !important; }
+            .metrics-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; margin-bottom: 15px !important; }
+            .metric-card { border: 1px solid #000 !important; box-shadow: none !important; padding: 8px !important; }
             .table-container { box-shadow: none; border: 1px solid #ccc; overflow: visible; }
-            table { width: 100%; font-size: 9pt; border-collapse: collapse; page-break-inside: auto; }
+            table { width: 100%; font-size: 8.5pt; border-collapse: collapse; page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
-            th, td { padding: 6px; border: 1px solid #000; vertical-align: middle; }
+            th, td { padding: 5px; border: 1px solid #000; vertical-align: middle; }
             .print-header { display: block !important; margin-bottom: 15px; text-align: center; }
-            .thumbnail { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #999; }
+            .thumbnail { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #999; }
         }
         .print-header { display: none; }
     </style>
@@ -144,11 +151,15 @@
                     <div class="metric-value" id="stat-total">0</div>
                 </div>
                 <div class="metric-card emerald">
-                    <div class="metric-title">Índice con Evidencia Foto</div>
+                    <div class="metric-title">Evidencia Fotográfica</div>
                     <div class="metric-value" id="stat-con-foto">0%</div>
                 </div>
+                <div class="metric-card amber">
+                    <div class="metric-title">Incidencias Pendientes</div>
+                    <div class="metric-value" id="stat-pendientes">0</div>
+                </div>
                 <div class="metric-card indigo">
-                    <div class="metric-title">Inspecciones (Últimos 30 días)</div>
+                    <div class="metric-title">Inspecciones (30 días)</div>
                     <div class="metric-value" id="stat-recientes">0</div>
                 </div>
             </div>
@@ -196,6 +207,15 @@
                         </select>
                     </div>
                     <div>
+                        <label class="form-label">Estado / Incidencia</label>
+                        <select id="filtro-estado" class="form-input" onchange="aplicarFiltros()">
+                            <option value="">Todos los estados</option>
+                            <option value="PENDIENTE">Incidencias Pendientes</option>
+                            <option value="OPERATIVA">Operativas / Normales</option>
+                            <option value="ATENDIDA">Atendidas / Corregidas</option>
+                        </select>
+                    </div>
+                    <div>
                         <button onclick="limpiarFiltros()" class="btn-gray" style="width: 100%;">Limpiar Filtros</button>
                     </div>
                 </div>
@@ -206,13 +226,15 @@
                     <thead>
                         <tr>
                             <th>ID Poste</th>
-                            <th>Actividad / Incidencia</th>
+                            <th>Actividad / Hallazgo</th>
+                            <th>Estado Incidencia</th>
                             <th>Sector / Barrio</th>
                             <th>Descripción</th>
                             <th>Técnico</th>
                             <th>Coordenadas GPS</th>
-                            <th>Fecha y Hora</th>
+                            <th>Fecha</th>
                             <th style="text-align: center;">Evidencia</th>
+                            <th style="text-align: center;" class="no-print">Acción</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-registros">
@@ -261,12 +283,15 @@
                     const latLng = [parseFloat(reg.latitud), parseFloat(reg.longitud)];
                     bounds.push(latLng);
 
+                    const estado = reg.estado_incidencia || 'OPERATIVA';
+                    const colorPin = estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? '🔴' : '🔵';
+
                     const popupContent = `
                         <div style="font-size: 0.85rem; line-height: 1.4;">
-                            <b>Poste:</b> ${reg.id_poste || 'N/D'}<br>
+                            <b>${colorPin} Poste:</b> ${reg.id_poste || 'N/D'}<br>
                             <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
+                            <b>Estado:</b> ${estado}<br>
                             <b>Sector:</b> ${reg.sector_barrio || 'N/D'}<br>
-                            <b>Técnico:</b> ${reg.usuario || 'N/D'}<br>
                             ${reg.foto_base64 ? `<img src="${reg.foto_base64}" style="margin-top: 6px; width: 100px; height: auto; border-radius: 4px;">` : ''}
                         </div>
                     `;
@@ -355,7 +380,7 @@
 
         async function cargarRegistrosCliente() {
             const tbody = document.getElementById("tabla-registros");
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">Cargando registros desde Supabase...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: #94a3b8;">Cargando registros desde Supabase...</td></tr>`;
 
             try {
                 const tokenAutenticado = localStorage.getItem("supabase_access_token");
@@ -377,7 +402,7 @@
 
             } catch (err) {
                 console.error("Fallo:", err);
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #dc2626;">Fallo al cargar: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: #dc2626;">Fallo al cargar: ${err.message}</td></tr>`;
             }
         }
 
@@ -387,6 +412,7 @@
 
             if (total === 0) {
                 document.getElementById("stat-con-foto").innerText = "0%";
+                document.getElementById("stat-pendientes").innerText = "0";
                 document.getElementById("stat-recientes").innerText = "0";
                 return;
             }
@@ -395,12 +421,15 @@
             const porcentajeFoto = Math.round((conFoto / total) * 100);
             document.getElementById("stat-con-foto").innerText = `${porcentajeFoto}%`;
 
+            const pendientes = data.filter(r => r.estado_incidencia && r.estado_incidencia !== 'OPERATIVA' && r.estado_incidencia !== 'ATENDIDA').length;
+            document.getElementById("stat-pendientes").innerText = pendientes;
+
             const hace30Dias = new Date();
             hace30Dias.setDate(hace30Dias.getDate() - 30);
             const recientes = data.filter(r => r.timestamp && new Date(r.timestamp) >= hace30Dias).length;
             document.getElementById("stat-recientes").innerText = recientes;
 
-            document.getElementById("print-fecha-generacion").innerText = `Generado el: ${new Date().toLocaleString()} | Total Registros Auditados: ${total}`;
+            document.getElementById("print-fecha-generacion").innerText = `Generado el: ${new Date().toLocaleString()} | Total Registros Auditados: ${total} | Incidencias Pendientes: ${pendientes}`;
         }
 
         function actualizarAnaliticaCuadrillas(data) {
@@ -449,6 +478,7 @@
         function aplicarFiltros() {
             const texto = document.getElementById("filtro-texto").value.toLowerCase();
             const actividadSeleccionada = document.getElementById("filtro-actividad").value;
+            const estadoSeleccionado = document.getElementById("filtro-estado").value;
 
             datosFiltrados = datosCache.filter(reg => {
                 const matchTexto = 
@@ -458,7 +488,18 @@
                     (reg.descripcion_trabajo && reg.descripcion_trabajo.toLowerCase().includes(texto));
 
                 const matchActividad = actividadSeleccionada === "" || reg.tipo_actividad === actividadSeleccionada;
-                return matchTexto && matchActividad;
+                
+                let matchEstado = true;
+                const estReg = reg.estado_incidencia || 'OPERATIVA';
+                if (estadoSeleccionado === "PENDIENTE") {
+                    matchEstado = estReg !== 'OPERATIVA' && estReg !== 'ATENDIDA';
+                } else if (estadoSeleccionado === "OPERATIVA") {
+                    matchEstado = estReg === 'OPERATIVA';
+                } else if (estadoSeleccionado === "ATENDIDA") {
+                    matchEstado = estReg === 'ATENDIDA';
+                }
+
+                return matchTexto && matchActividad && matchEstado;
             });
 
             renderizarTabla(datosFiltrados);
@@ -468,9 +509,36 @@
         function limpiarFiltros() {
             document.getElementById("filtro-texto").value = "";
             document.getElementById("filtro-actividad").value = "";
+            document.getElementById("filtro-estado").value = "";
             datosFiltrados = [...datosCache];
             renderizarTabla(datosFiltrados);
             initMap(datosCache);
+        }
+
+        async function marcarAtendida(idRegistro) {
+            if (!confirm("¿Deseas marcar esta incidencia como corregida / atendida?")) return;
+
+            try {
+                const tokenAutenticado = localStorage.getItem("supabase_access_token");
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${idRegistro}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${tokenAutenticado}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ estado_incidencia: 'ATENDIDA' })
+                });
+
+                if (!res.ok) throw new Error("No se pudo actualizar el registro.");
+
+                alert("Incidencia marcada como atendida correctamente.");
+                cargarRegistrosCliente();
+
+            } catch (err) {
+                alert("Error al actualizar: " + err.message);
+            }
         }
 
         function renderizarTabla(data) {
@@ -478,25 +546,37 @@
             document.getElementById("total-registros").innerText = data.length;
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #d97706;">No se encontraron registros en el filtro actual.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: #d97706;">No se encontraron registros en el filtro actual.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = "";
             data.forEach(reg => {
                 const fechaFormateada = reg.timestamp ? new Date(reg.timestamp).toLocaleString() : "N/D";
-                const tr = document.createElement("tr");
+                const estado = reg.estado_incidencia || 'OPERATIVA';
+                
+                let badgeClass = 'badge-ok';
+                if (estado !== 'OPERATIVA' && estado !== 'ATENDIDA') {
+                    badgeClass = 'badge-falla';
+                } else if (estado === 'ATENDIDA') {
+                    badgeClass = 'badge-atendida';
+                }
 
+                const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td style="font-weight: bold; color: #0f172a;">${reg.id_poste || 'N/D'}</td>
                     <td><span class="badge">${reg.tipo_actividad || 'N/D'}</span></td>
+                    <td><span class="badge ${badgeClass}">${estado}</span></td>
                     <td>${reg.sector_barrio || 'N/D'}</td>
-                    <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${reg.descripcion_trabajo || ''}">${reg.descripcion_trabajo || 'N/D'}</td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${reg.descripcion_trabajo || ''}">${reg.descripcion_trabajo || 'N/D'}</td>
                     <td style="color: #64748b;">${reg.usuario || 'N/D'}</td>
                     <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${reg.latitud}, ${reg.longitud}</td>
                     <td style="font-size: 0.75rem; color: #64748b;">${fechaFormateada}</td>
                     <td style="text-align: center;">
                         ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.foto_base64}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
+                    </td>
+                    <td style="text-align: center;" class="no-print">
+                        ${estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? `<button onclick="marcarAtendida(${reg.id})" class="btn-action">Marcar Atendida</button>` : '<span style="font-size: 0.7rem; color: #94a3b8;">N/A</span>'}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -515,11 +595,12 @@
         function exportarCSV() {
             if (datosFiltrados.length === 0) return alert("No hay datos para exportar.");
 
-            let csvContent = "\uFEFFID Poste,Tipo Actividad,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,URL Foto\n";
+            let csvContent = "\uFEFFID Poste,Tipo Actividad,Estado Incidencia,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,URL Foto\n";
             datosFiltrados.forEach(r => {
                 const fila = [
                     `"${r.id_poste || ''}"`,
                     `"${r.tipo_actividad || ''}"`,
+                    `"${r.estado_incidencia || 'OPERATIVA'}"`,
                     `"${r.sector_barrio || ''}"`,
                     `"${(r.descripcion_trabajo || '').replace(/"/g, '""')}"`,
                     `"${r.usuario || ''}"`,
