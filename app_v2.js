@@ -151,7 +151,7 @@ async function saveRecord() {
     img.onload = function() {
         URL.revokeObjectURL(imageUrl);
         
-        const canvas = document.createElement("canvas");
+        const canvas = .createElement("canvas");
         const MAX_WIDTH = 1000; 
         const MAX_HEIGHT = 1000;
         let width = img.width;
@@ -208,14 +208,14 @@ async function saveRecord() {
             
             tx.oncomplete = () => {
                 alert("Inspección guardada exitosamente en el equipo.");
-                document.getElementById("id_poste").value = "";
-                document.getElementById("tipo_actividad").value = "";
-                document.getElementById("estado_incidencia").value = "OPERATIVA";
-                document.getElementById("sector_barrio").value = "";
-                document.getElementById("descripcion_trabajo").value = "";
-                document.getElementById("cameraInput").value = "";
+                .getElementById("id_poste").value = "";
+                .getElementById("tipo_actividad").value = "";
+                .getElementById("estado_incidencia").value = "OPERATIVA";
+                .getElementById("sector_barrio").value = "";
+                .getElementById("descripcion_trabajo").value = "";
+                .getElementById("cameraInput").value = "";
                 currentGPS = null;
-                const gpsData = document.getElementById("gps-data");
+                const gpsData = .getElementById("gps-data");
                 if(gpsData) gpsData.innerText = "GPS no capturado";
                 checkQueue();
                 initMapFromLocal(); 
@@ -250,8 +250,8 @@ function checkQueue() {
     const req = store.getAll();
     req.onsuccess = () => {
         const records = req.result;
-        const queueCount = document.getElementById("queue-count");
-        const btnSync = document.getElementById("btn-sync");
+        const queueCount = .getElementById("queue-count");
+        const btnSync = .getElementById("btn-sync");
         
         if(queueCount) queueCount.innerText = records.length;
         
@@ -286,7 +286,7 @@ async function syncData() {
         return;
     }
 
-    const btnSync = document.getElementById("btn-sync");
+    const btnSync = .getElementById("btn-sync");
     if(btnSync) btnSync.innerText = "Sincronizando...";
     
     const tx = db.transaction("registros", "readonly");
@@ -397,15 +397,23 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
-    if (localStorage.getItem("supabase_access_token") && localStorage.getItem("user")) {
-        const loginScreen = document.getElementById("login-screen");
-        const appScreen = document.getElementById("app-screen");
+    
+    const loginScreen = document.getElementById("login-screen");
+    const appScreen = document.getElementById("app-screen");
+    const token = localStorage.getItem("supabase_access_token");
+    const user = localStorage.getItem("user");
+
+    if (token && user) {
+        // Si ya hay una sesión activa guardada
         if (loginScreen) loginScreen.classList.add("hidden");
         if (appScreen) appScreen.classList.remove("hidden");
         setTimeout(() => initMapFromLocal(), 500);
+    } else {
+        // Si NO hay sesión, forzamos obligatoriamente que se muestre el login
+        if (loginScreen) loginScreen.classList.remove("hidden");
+        if (appScreen) appScreen.classList.add("hidden");
     }
 });
-
 let html5QrCode = null;
 
 function startQrScanner() {
