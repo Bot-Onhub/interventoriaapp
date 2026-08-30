@@ -77,6 +77,15 @@ async function login() {
             localStorage.setItem("rol", data.rol);
             document.getElementById("login-screen").classList.add("hidden");
             document.getElementById("app-screen").classList.remove("hidden");
+            
+            // Inicializar el mapa al entrar a la pantalla principal
+            setTimeout(() => {
+                if (mapInstance) {
+                    mapInstance.invalidateSize();
+                } else {
+                    initMapFromLocal();
+                }
+            }, 300);
         } else {
             alert(data.error || "Credenciales incorrectas.");
             if(btnLogin) btnLogin.innerText = "Ingresar";
@@ -117,12 +126,13 @@ async function saveRecord() {
     const file = document.getElementById("cameraInput").files[0];
     
     const tipoActividad = document.getElementById("tipo_actividad")?.value || "";
+    const estadoIncidencia = document.getElementById("estado_incidencia")?.value || "";
     const sectorBarrio = document.getElementById("sector_barrio")?.value || "";
     const descripcionTrabajo = document.getElementById("descripcion_trabajo")?.value || "";
     
     if (!idPoste) return alert("Falta el ID del Poste.");
     if (!tipoActividad) return alert("Falta seleccionar el Tipo de Actividad.");
-    const estadoIncidencia = document.getElementById("estado_incidencia").value;
+    if (!estadoIncidencia) return alert("Falta seleccionar el Estado Operativo.");
     if (!sectorBarrio) return alert("Falta escribir el Sector o Barrio.");
     if (!descripcionTrabajo) return alert("Falta la Descripción del trabajo.");
     if (!currentGPS) return alert("Falta capturar la coordenada GPS.");
@@ -181,6 +191,7 @@ async function saveRecord() {
         const record = {
             id_poste: idPoste.toUpperCase(),
             tipo_actividad: tipoActividad,
+            estado_incidencia: estadoIncidencia,
             sector_barrio: sectorBarrio,
             descripcion_trabajo: descripcionTrabajo,
             usuario: currentUser,
@@ -199,6 +210,7 @@ async function saveRecord() {
                 alert("Inspección guardada exitosamente en el equipo.");
                 document.getElementById("id_poste").value = "";
                 document.getElementById("tipo_actividad").value = "";
+                document.getElementById("estado_incidencia").value = "OPERATIVA";
                 document.getElementById("sector_barrio").value = "";
                 document.getElementById("descripcion_trabajo").value = "";
                 document.getElementById("cameraInput").value = "";
@@ -206,6 +218,7 @@ async function saveRecord() {
                 const gpsData = document.getElementById("gps-data");
                 if(gpsData) gpsData.innerText = "";
                 checkQueue();
+                initMapFromLocal(); // Actualizar pines del mapa
             };
 
             tx.onerror = (e) => {
@@ -247,6 +260,22 @@ function checkQueue() {
         } else {
             if(btnSync) btnSync.classList.add("hidden");
         }
+        
+        initMapFromLocal(records);
+    };
+}
+
+function initMapFromLocal(registrosForzados = null) {
+    if (!db) return;
+    if (registrosForzados) {
+        initMap(registrosForzados);
+        return;
+    }
+    const tx = db.transaction("registros", "readonly");
+    const store = tx.objectStore("registros");
+    const req = store.getAll();
+    req.onsuccess = () => {
+        initMap(req.result);
     };
 }
 
@@ -292,10 +321,11 @@ async function syncData() {
                     fotoUrlPublica = `${SUPABASE_URL}/storage/v1/object/public/evidencias-inspeccion/${nombreArchivo}`;
                 }
 
-                // 2. Preparar el objeto con la URL pública de la foto
+                // 2. Preparar el objeto con la URL pública de la foto y el estado corregido
                 const datosParaEnviar = {
                     id_poste: record.id_poste,
                     tipo_actividad: record.tipo_actividad,
+                    estado_incidencia: record.estado_incidencia || "OPERATIVA",
                     sector_barrio: record.sector_barrio,
                     descripcion_trabajo: record.descripcion_trabajo,
                     usuario: record.usuario,
@@ -365,6 +395,14 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
+    // Si ya hay sesión guardada en localStorage, mostrar de una vez la pantalla de app y cargar mapa
+    if (localStorage.getItem("user")) {
+        const loginScreen = document.getElementById("login-screen");
+        const appScreen = document.getElementById("app-screen");
+        if (loginScreen) loginScreen.classList.add("hidden");
+        if (appScreen) appScreen.classList.remove("hidden");
+        setTimeout(() => initMapFromLocal(), 500);
+    }
 });
 
 let html5QrCode = null;
@@ -409,13 +447,14 @@ function stopQrScanner() {
         });
     }
 }
+
 let mapInstance = null;
 let markersLayer = null;
 
 function initMap(registros = []) {
     // Si el mapa ya existe, solo limpiamos los marcadores viejos
     if (!mapInstance) {
-        // Coordenadas iniciales centradas por defecto en Colombia (ej. Envigado / Medellín)
+        // Coordenadas iniciales centradas por defecto en Colombia (Envigado / Antioquia)
         mapInstance = L.map('map').setView([6.168, -75.591], 13);
 
         // Capa visual de OpenStreetMap
@@ -438,12 +477,13 @@ function initMap(registros = []) {
             bounds.push(latLng);
 
             const popupContent = `
-                <div class="p-2">
+                <div class="p-2" style="font-size: 0.85rem;">
                     <b>Poste:</b> ${reg.id_poste}<br>
                     <b>Actividad:</b> ${reg.tipo_actividad}<br>
+                    <b>Estado:</b> ${reg.estado_incidencia || 'N/A'}<br>
                     <b>Sector:</b> ${reg.sector_barrio}<br>
                     <b>Técnico:</b> ${reg.usuario}<br>
-                    ${reg.foto_base64 ? `<img src="${reg.foto_base64}" class="mt-2 w-32 h-auto rounded">` : ''}
+                    ${reg.foto_base64 ? `<img src="${reg.foto_base64}" class="mt-2" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px;">` : ''}
                 </div>
             `;
 
