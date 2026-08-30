@@ -4,80 +4,299 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interventoría AaaS - Versión Segura (v2)</title>
-    <!-- Tailwind CSS para diseño moderno -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS para el Mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Html5-qrcode para lectura de códigos QR -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
-        #map { height: 300px; width: 100%; border-radius: 0.5rem; z-index: 10; }
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Pantalla de Login */
+        #login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .login-card h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            text-align: center;
+            color: #0f172a;
+        }
+
+        .login-card p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Estructura Principal */
+        #app-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #0f172a;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        #status-indicator {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            background: #64748b;
+            color: white;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        main {
+            flex: 1;
+            max-width: 700px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.25rem;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #334155;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.85rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        input[type="email"],
+        input[type="pass"],
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        .row-flex {
+            display: flex;
+            gap: 0.5srem;
+            gap: 8px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            padding: 0.65rem 1rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-dark {
+            background: #1e293b;
+        }
+        .btn-dark:hover {
+            background: #0f172a;
+        }
+
+        .btn-success {
+            background: #059669;
+        }
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-indigo {
+            background: #4f46e5;
+        }
+        .btn-indigo:hover {
+            background: #4338ca;
+        }
+
+        .full-width {
+            width: 100%;
+        }
+
+        #reader {
+            margin-top: 0.5rem;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .gps-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #gps-data {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        input[type="file"] {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        #map {
+            height: 280px;
+            width: 100%;
+            border-radius: 6px;
+            z-index: 10;
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body>
 
     <!-- ========================================== -->
     <!-- PANTALLA DE LOGIN (Supabase Auth)          -->
     <!-- ========================================== -->
-    <div id="login-screen" class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-gray-200">
-            <div class="text-center mb-6">
-                <h1 class="text-2xl font-black text-gray-800">INTERVENTORÍA AAAs</h1>
-                <p class="text-xs text-gray-500 mt-1">Acceso Seguro Verificado por Base de Datos</p>
+    <div id="login-screen">
+        <div class="login-card">
+            <h1>INTERVENTORÍA AAAs</h1>
+            <p>Acceso Seguro Verificado por Base de Datos</p>
+            
+            <div class="form-group">
+                <label>Correo Electrónico (Supabase)</label>
+                <input type="email" id="user" placeholder="usuario@municipio.gov.co">
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Correo Electrónico (Supabase)</label>
-                    <input type="email" id="user" placeholder="usuario@municipio.gov.co" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Contraseña</label>
-                    <input type="pass" id="pass" placeholder="••••••••" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
-                </div>
-                <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition duration-200 shadow-md text-sm">
-                    Ingresar al Sistema
-                </button>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="pass" id="pass" placeholder="••••••••">
             </div>
+            <button onclick="login()" class="full-width">Ingresar al Sistema</button>
         </div>
     </div>
 
     <!-- ========================================== -->
     <!-- PANTALLA PRINCIPAL DE LA APLICACIÓN       -->
     <!-- ========================================== -->
-    <div id="app-screen" class="hidden min-h-screen flex flex-col">
+    <div id="app-screen" class="hidden">
         <!-- Barra Superior -->
-        <header class="bg-slate-900 text-white shadow-md p-4 flex justify-between items-center">
+        <header>
             <div>
-                <h2 class="font-bold text-sm md:text-base">Módulo de Inspección en Campo</h2>
-                <span id="status-indicator" class="text-xs px-2 py-0.5 bg-gray-500 text-white rounded font-bold">Verificando red...</span>
+                <h2>Módulo de Inspección en Campo</h2>
+                <span id="status-indicator">Verificando red...</span>
             </div>
-            <button id="btn-sync" onclick="syncData()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow transition flex items-center gap-1">
+            <button id="btn-sync" onclick="syncData()" class="hidden btn-success" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
                 Sincronizar Pendientes (<span id="queue-count">0</span>)
             </button>
         </header>
 
         <!-- Contenido -->
-        <main class="flex-1 max-w-4xl w-full mx-auto p-4 space-y-6">
-            
+        <main>
             <!-- Formulario de Registro -->
-            <section class="bg-white p-5 rounded-xl shadow-md border border-gray-200 space-y-4">
-                <h3 class="font-bold text-gray-800 text-sm border-b pb-2 uppercase tracking-wide">Nuevo Registro de Activo</h3>
+            <section class="card">
+                <h3>Nuevo Registro de Activo</h3>
                 
                 <!-- ID Poste y QR -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">ID del Poste / Activo</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="id_poste" placeholder="Ej: TRN-001" class="flex-1 px-3 py-2 border rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button onclick="startQrScanner()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow">Escanear QR</button>
+                <div class="form-group">
+                    <label>ID del Poste / Activo</label>
+                    <div class="row-flex">
+                        <input type="text" id="id_poste" placeholder="Ej: TRN-001" style="text-transform: uppercase;">
+                        <button onclick="startQrScanner()" class="btn-dark">Escanear QR</button>
                     </div>
-                    <!-- Contenedor de la cámara QR -->
-                    <div id="reader" class="hidden mt-2 border rounded-lg overflow-hidden"></div>
+                    <div id="reader" class="hidden"></div>
                 </div>
 
                 <!-- Tipo de Actividad -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Tipo de Actividad</label>
-                    <select id="tipo_actividad" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="form-group">
+                    <label>Tipo de Actividad</label>
+                    <select id="tipo_actividad">
                         <option value="">Seleccione una actividad...</option>
                         <option value="MANTENIMIENTO_PREVENTIVO">Mantenimiento Preventivo</option>
                         <option value="MANTENIMIENTO_CORRECTIVO">Mantenimiento Correctivo</option>
@@ -87,9 +306,9 @@
                 </div>
 
                 <!-- Estado Operativo -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Estado Operativo</label>
-                    <select id="estado_incidencia" class="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="form-group">
+                    <label>Estado Operativo</label>
+                    <select id="estado_incidencia">
                         <option value="OPERATIVA">Operativa / Sin Novedad</option>
                         <option value="DANADA">Dañada / Con Falla</option>
                         <option value="EN_REPARACION">En Reparación</option>
@@ -98,44 +317,43 @@
                 </div>
 
                 <!-- Sector o Barrio -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Sector / Barrio / Vereda</label>
-                    <input type="text" id="sector_barrio" placeholder="Ej: Zona Centro, Vereda La Clara" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="form-group">
+                    <label>Sector / Barrio / Vereda</label>
+                    <input type="text" id="sector_barrio" placeholder="Ej: Zona Centro, Vereda La Clara">
                 </div>
 
                 <!-- Descripción del Trabajo -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Descripción del Trabajo / Observaciones</label>
-                    <textarea id="descripcion_trabajo" rows="2" placeholder="Detalle las condiciones encontradas..." class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="form-group">
+                    <label>Descripción del Trabajo / Observaciones</label>
+                    <textarea id="descripcion_trabajo" rows="2" placeholder="Detalle las condiciones encontradas..."></textarea>
                 </div>
 
                 <!-- Captura GPS -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Geolocalización GPS</label>
-                    <div class="flex items-center gap-3">
-                        <button onclick="captureGPS()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow">Capturar Coordenadas</button>
-                        <span id="gps-data" class="text-xs text-gray-500 italic">GPS no capturado</span>
+                <div class="form-group">
+                    <label>Geolocalización GPS</label>
+                    <div class="gps-container">
+                        <button onclick="captureGPS()" class="btn-indigo">Capturar Coordenadas</button>
+                        <span id="gps-data">GPS no capturado</span>
                     </div>
                 </div>
 
                 <!-- Fotografía de Evidencia -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Evidencia Fotográfica (Obligatoria)</label>
-                    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <div class="form-group">
+                    <label>Evidencia Fotográfica (Obligatoria)</label>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment">
                 </div>
 
                 <!-- Botón Guardar -->
-                <button onclick="saveRecord()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition duration-200 text-sm">
+                <button onclick="saveRecord()" class="full-width" style="margin-top: 0.5rem; padding: 0.8rem;">
                     Guardar Inspección Localmente
                 </button>
             </section>
 
             <!-- Mapa Interactivo Leaflet -->
-            <section class="bg-white p-4 rounded-xl shadow-md border border-gray-200 space-y-2">
-                <h3 class="font-bold text-gray-800 text-sm">Ubicación de Registros (Mapa Local)</h3>
+            <section class="card">
+                <h3>Ubicación de Registros (Mapa Local)</h3>
                 <div id="map"></div>
             </section>
-
         </main>
     </div>
 
