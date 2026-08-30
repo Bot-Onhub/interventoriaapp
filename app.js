@@ -408,3 +408,52 @@ function stopQrScanner() {
         });
     }
 }
+let mapInstance = null;
+let markersLayer = null;
+
+function initMap(registros = []) {
+    // Si el mapa ya existe, solo limpiamos los marcadores viejos
+    if (!mapInstance) {
+        // Coordenadas iniciales centradas por defecto en Colombia (ej. Envigado / Medellín)
+        mapInstance = L.map('map').setView([6.168, -75.591], 13);
+
+        // Capa visual de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(mapInstance);
+
+        markersLayer = L.layerGroup().addTo(mapInstance);
+    } else {
+        markersLayer.clearLayers();
+    }
+
+    let bounds = [];
+
+    // Recorrer los registros para pintar los pines
+    registros.forEach(reg => {
+        if (reg.latitud && reg.longitud) {
+            const latLng = [reg.latitud, reg.longitud];
+            bounds.push(latLng);
+
+            const popupContent = `
+                <div class="p-2">
+                    <b>Poste:</b> ${reg.id_poste}<br>
+                    <b>Actividad:</b> ${reg.tipo_actividad}<br>
+                    <b>Sector:</b> ${reg.sector_barrio}<br>
+                    <b>Técnico:</b> ${reg.usuario}<br>
+                    ${reg.foto_base64 ? `<img src="${reg.foto_base64}" class="mt-2 w-32 h-auto rounded">` : ''}
+                </div>
+            `;
+
+            L.marker(latLng)
+                .addTo(markersLayer)
+                .bindPopup(popupContent);
+        }
+    });
+
+    // Si hay puntos, ajustar el zoom del mapa para que abarque todos los registros
+    if (bounds.length > 0) {
+        mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    }
+}
