@@ -1,9 +1,6 @@
 // ==========================================
 // 1. CONFIGURACIÓN DE SERVIDORES Y APIS
 // ==========================================
-// SE ELIMINA LA DEPENDENCIA DE GOOGLE APPS SCRIPT. LA SEGURIDAD EXIGE UNIDAD DE AUTENTICACIÓN.
-
-// CREDENCIALES DE SUPABASE
 const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; 
 const SUPABASE_TABLE = "registros_interventoria"; 
@@ -11,7 +8,6 @@ const SUPABASE_TABLE = "registros_interventoria";
 let db;
 let currentUser = localStorage.getItem("user") || "";
 
-// Función auxiliar para obtener el token de seguridad
 const getSupabaseToken = () => localStorage.getItem("supabase_access_token");
 
 // ==========================================
@@ -39,20 +35,20 @@ function updateOnlineStatus() {
     const ind = document.getElementById("status-indicator");
     if (!ind) return;
     if (navigator.onLine) {
-        ind.className = "text-xs px-2 py-1 bg-green-500 text-white rounded font-bold";
+        ind.style.background = "#059669";
         ind.innerText = "Online";
         if (db) { checkQueue(); }
     } else {
-        ind.className = "text-xs px-2 py-1 bg-red-500 text-white rounded font-bold";
+        ind.style.background = "#dc2626";
         ind.innerText = "Offline";
     }
 }
 
 // ==========================================
-// 4. SISTEMA DE LOGIN (Vía Supabase Auth - OBLIGATORIO PARA RLS)
+// 4. SISTEMA DE LOGIN (Vía Supabase Auth)
 // ==========================================
 async function login() {
-    const email = document.getElementById("user").value; // Ahora debe ser el correo registrado en Supabase
+    const email = document.getElementById("user").value;
     const pass = document.getElementById("pass").value;
     
     if(!navigator.onLine) {
@@ -79,7 +75,6 @@ async function login() {
         
         if (res.ok && data.access_token) {
             currentUser = email;
-            // Guardamos credenciales y el token JWT necesario para pasar las políticas RLS
             localStorage.setItem("user", email);
             localStorage.setItem("supabase_access_token", data.access_token);
             
@@ -95,12 +90,12 @@ async function login() {
             }, 300);
         } else {
             alert(data.error_description || "Credenciales incorrectas.");
-            if(btnLogin) btnLogin.innerText = "Ingresar";
+            if(btnLogin) btnLogin.innerText = "Ingresar al Sistema";
         }
     } catch(err) {
         alert("Error de conexión con el servidor de autenticación.");
         console.error("Detalle del error:", err);
-        if(btnLogin) btnLogin.innerText = "Ingresar";
+        if(btnLogin) btnLogin.innerText = "Ingresar al Sistema";
     }
 }
 
@@ -119,7 +114,7 @@ function captureGPS() {
         },
         (err) => {
             alert("Debes permitir el acceso al GPS para continuar.");
-            if(gpsData) gpsData.innerText = "";
+            if(gpsData) gpsData.innerText = "GPS no capturado";
         },
         { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
@@ -221,7 +216,7 @@ async function saveRecord() {
                 document.getElementById("cameraInput").value = "";
                 currentGPS = null;
                 const gpsData = document.getElementById("gps-data");
-                if(gpsData) gpsData.innerText = "";
+                if(gpsData) gpsData.innerText = "GPS no capturado";
                 checkQueue();
                 initMapFromLocal(); 
             };
@@ -292,7 +287,7 @@ async function syncData() {
     }
 
     const btnSync = document.getElementById("btn-sync");
-    if(btnSync) btnSync.innerText = "Sincronizando de forma segura...";
+    if(btnSync) btnSync.innerText = "Sincronizando...";
     
     const tx = db.transaction("registros", "readonly");
     const store = tx.objectStore("registros");
@@ -308,17 +303,15 @@ async function syncData() {
             for (let record of records) {
                 let rutaInternaFoto = "";
 
-                // 1. Subir foto al Storage Privado de Supabase
                 if (record.foto_base64) {
                     const blobFoto = dataURLtoBlob(record.foto_base64);
-                    // Formato limpio para la ruta: inspecciones/usuario_timestamp_poste.jpg
                     const nombreArchivo = `inspecciones/${record.usuario.split('@')[0]}_${Date.now()}_${record.id_poste}.jpg`;
 
                     const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${token}`, // Pasa la barrera de seguridad
+                            'Authorization': `Bearer ${token}`,
                             'Content-Type': 'image/jpeg',
                             'x-upsert': 'true'
                         },
@@ -331,11 +324,9 @@ async function syncData() {
                         throw new Error("No se pudo subir la foto por restricciones de seguridad (RLS).");
                     }
                     
-                    // Se guarda la ruta interna, NO el enlace público
                     rutaInternaFoto = nombreArchivo; 
                 }
 
-                // 2. Preparar el objeto para la tabla (Cumpliendo esquema forense)
                 const datosParaEnviar = {
                     id_poste: record.id_poste,
                     tipo_actividad: record.tipo_actividad,
@@ -346,16 +337,15 @@ async function syncData() {
                     latitud: record.latitud,
                     longitud: record.longitud,
                     timestamp: record.timestamp,
-                    foto_base64: rutaInternaFoto // Ruta interna segura
+                    foto_base64: rutaInternaFoto
                 };
 
-                // 3. Enviar a la base de datos (Pasando validación de Tenant y Roles)
                 const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${token}`, // Identidad verificada
+                        'Authorization': `Bearer ${token}`,
                         'Prefer': 'return=minimal'
                     },
                     body: JSON.stringify(datosParaEnviar)
@@ -365,7 +355,6 @@ async function syncData() {
                     throw new Error("Error al insertar el registro. Verifica permisos RLS en la tabla.");
                 }
 
-                // 4. BORRADO ATÓMICO
                 await new Promise((resolve, reject) => {
                     const txDel = db.transaction("registros", "readwrite");
                     const storeDel = txDel.objectStore("registros");
@@ -480,15 +469,14 @@ function initMap(registros = []) {
             const latLng = [reg.latitud, reg.longitud];
             bounds.push(latLng);
 
-            // Se renderiza la foto directamente del base64 almacenado localmente
             const popupContent = `
-                <div class="p-2" style="font-size: 0.85rem;">
+                <div style="font-size: 0.85rem; padding: 4px;">
                     <b>Poste:</b> ${reg.id_poste}<br>
                     <b>Actividad:</b> ${reg.tipo_actividad}<br>
                     <b>Estado:</b> ${reg.estado_incidencia || 'N/A'}<br>
                     <b>Sector:</b> ${reg.sector_barrio}<br>
                     <b>Técnico:</b> ${reg.usuario}<br>
-                    ${reg.foto_base64 ? `<img src="${reg.foto_base64}" class="mt-2" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px;">` : ''}
+                    ${reg.foto_base64 ? `<img src="${reg.foto_base64}" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px;">` : ''}
                 </div>
             `;
 
