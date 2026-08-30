@@ -4,10 +4,10 @@
 // Mantenemos Apps Script SOLO para el login
 const API_URL_GAS = "https://script.google.com/macros/s/AKfycbwSOCQqsj_AaU2VLMGtYvlVlbG4mzBP4FmE0-XNflCss5f0bZpaOjTT2LKFaNaYMTrZ/exec?token=Macgregor281170";
 
-// INYECTA AQUÍ TUS CREDENCIALES DE SUPABASE PARA GUARDAR DATOS
-const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; // Reemplaza con tu URL de Supabase
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; // Reemplaza con tu Anon Key
-const SUPABASE_TABLE = "registros_interventoria"; // Reemplaza con el nombre de tu tabla en Supabase
+// CREDENCIALES DE SUPABASE
+const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; 
+const SUPABASE_TABLE = "registros_interventoria"; 
 
 let db;
 let currentUser = localStorage.getItem("user") || "";
@@ -18,7 +18,9 @@ let currentUser = localStorage.getItem("user") || "";
 const request = indexedDB.open("InterventoriaDB", 1);
 request.onupgradeneeded = (e) => {
     db = e.target.result;
-    db.createObjectStore("registros", { autoIncrement: true });
+    if (!db.objectStoreNames.contains("registros")) {
+        db.createObjectStore("registros", { keyPath: "id", autoIncrement: true });
+    }
 };
 request.onsuccess = (e) => { 
     db = e.target.result; 
@@ -33,6 +35,7 @@ window.addEventListener('offline', updateOnlineStatus);
 
 function updateOnlineStatus() {
     const ind = document.getElementById("status-indicator");
+    if (!ind) return;
     if (navigator.onLine) {
         ind.className = "text-xs px-2 py-1 bg-green-500 text-white rounded font-bold";
         ind.innerText = "Online";
@@ -55,7 +58,8 @@ async function login() {
         return;
     }
     
-    document.querySelector("#login-screen button").innerText = "Verificando...";
+    const btnLogin = document.querySelector("#login-screen button");
+    if(btnLogin) btnLogin.innerText = "Verificando...";
     
     try {
         const urlLogin = `${API_URL_GAS}&action=login&usuario=${encodeURIComponent(user)}&clave=${encodeURIComponent(pass)}`;
@@ -75,12 +79,12 @@ async function login() {
             document.getElementById("app-screen").classList.remove("hidden");
         } else {
             alert(data.error || "Credenciales incorrectas.");
-            document.querySelector("#login-screen button").innerText = "Ingresar";
+            if(btnLogin) btnLogin.innerText = "Ingresar";
         }
     } catch(err) {
         alert("Error de conexión con el servidor de autenticación.");
         console.error("Detalle del error:", err);
-        document.querySelector("#login-screen button").innerText = "Ingresar";
+        if(btnLogin) btnLogin.innerText = "Ingresar";
     }
 }
 
@@ -89,22 +93,24 @@ async function login() {
 // ==========================================
 let currentGPS = null;
 function captureGPS() {
-    document.getElementById("gps-data").innerText = "Buscando satélites...";
+    const gpsData = document.getElementById("gps-data");
+    if(gpsData) gpsData.innerText = "Buscando satélites...";
+    
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            document.getElementById("gps-data").innerText = `Precisión lograda: Lat ${currentGPS.lat.toFixed(5)}, Lng ${currentGPS.lng.toFixed(5)}`;
+            if(gpsData) gpsData.innerText = `Precisión lograda: Lat ${currentGPS.lat.toFixed(5)}, Lng ${currentGPS.lng.toFixed(5)}`;
         },
         (err) => {
             alert("Debes permitir el acceso al GPS para continuar.");
-            document.getElementById("gps-data").innerText = "";
+            if(gpsData) gpsData.innerText = "";
         },
-        { enableHighAccuracy: true, maximumAge: 0 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
 }
 
 // ==========================================
-// 6. GUARDAR REGISTRO LOCALMENTE (Incluye nuevos campos)
+// 6. GUARDAR REGISTRO LOCALMENTE
 // ==========================================
 async function saveRecord() {
     const idPoste = document.getElementById("id_poste").value;
@@ -121,7 +127,6 @@ async function saveRecord() {
     if (!currentGPS) return alert("Falta capturar la coordenada GPS.");
     if (!file) return alert("La fotografía es obligatoria.");
     
-    // Validar que la base de datos esté lista antes de procesar
     if (!db) {
         alert("La base de datos local no está lista. Recarga la página.");
         return;
@@ -134,7 +139,7 @@ async function saveRecord() {
         URL.revokeObjectURL(imageUrl);
         
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 1000; // Subimos un poco la resolución para que el texto sea legible
+        const MAX_WIDTH = 1000; 
         const MAX_HEIGHT = 1000;
         let width = img.width;
         let height = img.height;
@@ -158,25 +163,20 @@ async function saveRecord() {
         // 1. Dibujamos la foto
         ctx.drawImage(img, 0, 0, width, height);
 
-        // 2. ESTAMPADO LEGAL: Creamos un rectángulo negro semitransparente abajo
+        // 2. Estampado legal
         const altoPanel = 70;
         ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
         ctx.fillRect(0, height - altoPanel, width, altoPanel);
 
-        // 3. ESTAMPADO LEGAL: Escribimos los metadatos en blanco
         ctx.fillStyle = "white";
         ctx.font = "bold 16px Arial, sans-serif";
         const fechaActual = new Date().toLocaleString("es-CO");
         
-        // Primera línea de texto
         ctx.fillText(`POSTE: ${idPoste.toUpperCase()} | FECHA: ${fechaActual}`, 15, height - 42);
-        // Segunda línea de texto
         ctx.fillText(`GPS: Lat ${currentGPS.lat.toFixed(5)}, Lon ${currentGPS.lng.toFixed(5)} | TÉCNICO: ${currentUser}`, 15, height - 17);
 
-        // 4. Exportamos la imagen ya estampada
         const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.8);
 
-        // De aquí en adelante es tu mismo código de guardado local
         const record = {
             id_poste: idPoste.toUpperCase(),
             tipo_actividad: tipoActividad,
@@ -202,7 +202,8 @@ async function saveRecord() {
                 document.getElementById("descripcion_trabajo").value = "";
                 document.getElementById("cameraInput").value = "";
                 currentGPS = null;
-                document.getElementById("gps-data").innerText = "";
+                const gpsData = document.getElementById("gps-data");
+                if(gpsData) gpsData.innerText = "";
                 checkQueue();
             };
 
@@ -215,6 +216,7 @@ async function saveRecord() {
             alert("Error al intentar escribir en la base de datos local.");
         }
     };    
+    
     img.onerror = function() {
         URL.revokeObjectURL(imageUrl);
         alert("Error al procesar la imagen de la cámara. Intenta de nuevo.");
@@ -222,35 +224,45 @@ async function saveRecord() {
     
     img.src = imageUrl;
 }
+
 // ==========================================
-// 7. MOTOR DE SINCRONIZACIÓN HACIA SUPABASE (Offline -> Online)
+// 7. MOTOR DE SINCRONIZACIÓN ATÓMICA HACIA SUPABASE
 // ==========================================
 function checkQueue() {
     if (!db) return;
     
     const tx = db.transaction("registros", "readonly");
     const store = tx.objectStore("registros");
-    const request = store.getAll();
-    request.onsuccess = () => {
-        const records = request.result;
-        document.getElementById("queue-count").innerText = records.length;
+    const req = store.getAll();
+    req.onsuccess = () => {
+        const records = req.result;
+        const queueCount = document.getElementById("queue-count");
+        const btnSync = document.getElementById("btn-sync");
+        
+        if(queueCount) queueCount.innerText = records.length;
+        
         if (records.length > 0 && navigator.onLine) {
-            document.getElementById("btn-sync").classList.remove("hidden");
+            if(btnSync) btnSync.classList.remove("hidden");
         } else {
-            document.getElementById("btn-sync").classList.add("hidden");
+            if(btnSync) btnSync.classList.add("hidden");
         }
     };
 }
 
 async function syncData() {
-    document.getElementById("btn-sync").innerText = "Sincronizando fotos y datos...";
-    const tx = db.transaction("registros", "readonly");
-    const request = tx.objectStore("registros").getAll();
+    const btnSync = document.getElementById("btn-sync");
+    if(btnSync) btnSync.innerText = "Sincronizando fotos y datos...";
     
-    request.onsuccess = async () => {
-        const records = request.result;
+    const tx = db.transaction("registros", "readonly");
+    const store = tx.objectStore("registros");
+    const req = store.getAll();
+    
+    req.onsuccess = async () => {
+        const records = req.result;
         if(records.length === 0) return;
         
+        let sincronizadosExitosamente = 0;
+
         try {
             for (let record of records) {
                 let fotoUrlPublica = "";
@@ -273,14 +285,13 @@ async function syncData() {
                     if (!resStorage.ok) {
                         const errorText = await resStorage.text();
                         console.error("ERROR DE STORAGE:", errorText);
-                        alert("Fallo al subir foto: " + errorText);
                         throw new Error("No se pudo subir la foto al Storage.");
                     }
 
                     fotoUrlPublica = `${SUPABASE_URL}/storage/v1/object/public/evidencias-inspeccion/${nombreArchivo}`;
                 }
 
-                // 2. Preparar el objeto con la URL de la foto
+                // 2. Preparar el objeto con la URL pública de la foto
                 const datosParaEnviar = {
                     id_poste: record.id_poste,
                     tipo_actividad: record.tipo_actividad,
@@ -293,7 +304,7 @@ async function syncData() {
                     foto_base64: fotoUrlPublica
                 };
 
-                // 3. Enviar a la tabla de la base de datos
+                // 3. Enviar a la tabla de la base de datos de Supabase
                 const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
                     method: 'POST',
                     headers: {
@@ -306,27 +317,35 @@ async function syncData() {
                 });
 
                 if (!resDb.ok) {
-                    throw new Error("Error al insertar el registro en la tabla.");
+                    throw new Error("Error al insertar el registro en la tabla de Supabase.");
                 }
+
+                // 4. BORRADO ATÓMICO: Si este registro específico subió con éxito, bórralo de IndexedDB individualmente
+                await new Promise((resolve, reject) => {
+                    const txDel = db.transaction("registros", "readwrite");
+                    const storeDel = txDel.objectStore("registros");
+                    const delReq = storeDel.delete(record.id);
+                    txDel.oncomplete = () => resolve();
+                    txDel.onerror = (e) => reject(e);
+                });
+
+                sincronizadosExitosamente++;
             }
             
-            // Limpieza local si todo salió bien
-            const txDel = db.transaction("registros", "readwrite");
-            txDel.objectStore("registros").clear();
-            
-            alert(`¡Sincronización exitosa! ${records.length} registros y fotos subidos.`);
+            alert(`¡Sincronización exitosa! Se subieron ${sincronizadosExitosamente} registros pendientes.`);
             checkQueue();
-            document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
+            if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
 
         } catch(e) {
-            alert("Error durante la sincronización. Revisa la consola.");
-            console.error("Detalle del fallo:", e);
-            document.getElementById("btn-sync").innerHTML = 'Sincronizar Pendientes (<span id="queue-count">'+records.length+'</span>)';
+            console.error("Detalle del fallo de red durante sincronización:", e);
+            alert(`Sincronización parcial. Se subieron ${sincronizadosExitosamente} registros. El resto se intentará más tarde al recuperar señal.`);
+            checkQueue();
+            if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">...</span>)';
         }
     };
 }
 
-// Función auxiliar necesaria para transformar la foto guardada en el celular a formato de archivo
+// Función auxiliar necesaria para transformar la foto guardada en el celular a formato de archivo Blob
 function dataURLtoBlob(dataurl) {
     let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
         bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
@@ -335,6 +354,7 @@ function dataURLtoBlob(dataurl) {
     }
     return new Blob([u8arr], {type:mime});
 }
+
 // ==========================================
 // 8. LECTOR DE CÓDIGO QR Y SERVICE WORKER
 // ==========================================
@@ -350,7 +370,7 @@ let html5QrCode = null;
 
 function startQrScanner() {
     const readerDiv = document.getElementById("reader");
-    readerDiv.classList.remove("hidden");
+    if(readerDiv) readerDiv.classList.remove("hidden");
     
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("reader");
@@ -363,24 +383,26 @@ function startQrScanner() {
             qrbox: { width: 250, height: 250 }
         },
         (decodedText, decodedResult) => {
-            document.getElementById("id_poste").value = decodedText;
+            const inputPoste = document.getElementById("id_poste");
+            if(inputPoste) inputPoste.value = decodedText;
             alert("¡Código QR leído: " + decodedText + "!");
             stopQrScanner();
         },
         (errorMessage) => {
-            // Ignorar errores silenciosos del escáner
+            // Ignorar errores silenciosos del escáner en tiempo real
         }
     ).catch((err) => {
         alert("No se pudo iniciar la cámara. Asegúrate de dar permisos en el navegador.");
         console.error(err);
-        readerDiv.classList.add("hidden");
+        if(readerDiv) readerDiv.classList.add("hidden");
     });
 }
 
 function stopQrScanner() {
     if (html5QrCode) {
         html5QrCode.stop().then(() => {
-            document.getElementById("reader").classList.add("hidden");
+            const readerDiv = document.getElementById("reader");
+            if(readerDiv) readerDiv.classList.add("hidden");
         }).catch(err => {
             console.error("Error al detener la cámara", err);
         });
