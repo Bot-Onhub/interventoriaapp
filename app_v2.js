@@ -5,25 +5,29 @@ const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; 
 const SUPABASE_TABLE = "registros_interventoria"; 
 
-let db;
 let currentUser = localStorage.getItem("user") || "";
-
 const getSupabaseToken = () => localStorage.getItem("supabase_access_token");
 
 // ==========================================
-// 2. CONFIGURAR BASE DE DATOS OFFLINE (IndexedDB)
+// 2. CONEXIÓN SEGURA A INDEXEDDB (Bajo Demanda)
 // ==========================================
-const request = indexedDB.open("InterventoriaDB", 1);
-request.onupgradeneeded = (e) => {
-    db = e.target.result;
-    if (!db.objectStoreNames.contains("registros")) {
-        db.createObjectStore("registros", { keyPath: "id", autoIncrement: true });
-    }
-};
-request.onsuccess = (e) => { 
-    db = e.target.result; 
-    checkQueue(); 
-};
+function getDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("InterventoriaDB", 1);
+        request.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains("registros")) {
+                database.createObjectStore("registros", { keyPath: "id", autoIncrement: true });
+            }
+        };
+        request.onsuccess = (e) => {
+            resolve(e.target.result);
+        };
+        request.onerror = (e) => {
+            reject(e.target.error);
+        };
+    });
+}
 
 // ==========================================
 // 3. CONTROL DE CONECTIVIDAD
@@ -31,13 +35,13 @@ request.onsuccess = (e) => {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
-function updateOnlineStatus() {
+async function updateOnlineStatus() {
     const ind = document.getElementById("status-indicator");
     if (!ind) return;
     if (navigator.onLine) {
         ind.style.background = "#059669";
         ind.innerText = "Online";
-        if (db) { checkQueue(); }
+        checkQueue();
     } else {
         ind.style.background = "#dc2626";
         ind.innerText = "Offline";
@@ -146,15 +150,10 @@ async function saveRecord() {
     if (!currentGPS) return alert("Falta capturar la coordenada GPS.");
     if (!file) return alert("La fotografía es obligatoria.");
     
-    if (!db) {
-        alert("La base de datos local no está lista. Recarga la página.");
-        return;
-    }
-    
     const imageUrl = URL.createObjectURL(file);
     const img = new Image();
     
-    img.onload = function() {
+    img.onload = async function() {
         URL.revokeObjectURL(imageUrl);
         
         const canvas = document.createElement("canvas");
@@ -178,7 +177,6 @@ async function saveRecord() {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
-        
         ctx.drawImage(img, 0, 0, width, height);
 
         const altoPanel = 70;
@@ -210,7 +208,8 @@ async function saveRecord() {
         };
         
         try {
-            const tx = db.transaction("registros", "readwrite");
+            const database = await getDB();
+            const tx = database.transaction("registros", "readwrite");
             const store = tx.objectStore("registros");
             store.add(record);
             
@@ -234,7 +233,7 @@ async function saveRecord() {
                 alert("Error al guardar localmente en el equipo.");
             };
         } catch (err) {
-            console.error("Error crítico abriendo transacción:", err);
+            console.error("Error crítico abriendo base de datos:", err);
             alert("Error al intentar escribir en la base de datos local.");
         }
     };    
@@ -250,41 +249,49 @@ async function saveRecord() {
 // ==========================================
 // 7. MOTOR DE SINCRONIZACIÓN ATÓMICA HACIA SUPABASE
 // ==========================================
-function checkQueue() {
-    if (!db) return;
-    
-    const tx = db.transaction("registros", "readonly");
-    const store = tx.objectStore("registros");
-    const req = store.getAll();
-    req.onsuccess = () => {
-        const records = req.result;
-        const queueCount = document.getElementById("queue-count");
-        const btnSync = document.getElementById("btn-sync");
+async function checkQueue() {
+    try {
+        const database = await getDB();
+        const tx = database.transaction("registros", "readonly");
+        const store = tx.objectStore("registros");
+        const req = store.getAll();
         
-        if(queueCount) queueCount.innerText = records.length;
-        
-        if (records.length > 0) {
-            if(btnSync) btnSync.classList.remove("hidden");
-        } else {
-            if(btnSync) btnSync.classList.add("hidden");
-        }
-        
-        initMapFromLocal(records);
-    };
+        req.onsuccess = () => {
+            const records = req.result;
+            const queueCount = document.getElementById("queue-count");
+            const btnSync = document.getElementById("btn-sync");
+            
+            if(queueCount) queueCount.innerText = records.length;
+            
+            if (records.length > 0) {
+                if(btnSync) btnSync.classList.remove("hidden");
+            } else {
+                if(btnSync) btnSync.classList.add("hidden");
+            }
+            
+            initMapFromLocal(records);
+        };
+    } catch (e) {
+        console.error("Error consultando la cola:", e);
+    }
 }
 
-function initMapFromLocal(registrosForzados = null) {
-    if (!db) return;
+async function initMapFromLocal(registrosForzados = null) {
     if (registrosForzados) {
         initMap(registrosForzados);
         return;
     }
-    const tx = db.transaction("registros", "readonly");
-    const store = tx.objectStore("registros");
-    const req = store.getAll();
-    req.onsuccess = () => {
-        initMap(req.result);
-    };
+    try {
+        const database = await getDB();
+        const tx = database.transaction("registros", "readonly");
+        const store = tx.objectStore("registros");
+        const req = store.getAll();
+        req.onsuccess = () => {
+            initMap(req.result);
+        };
+    } catch (e) {
+        console.error("Error cargando mapa local:", e);
+    }
 }
 
 async function syncData() {
@@ -297,95 +304,100 @@ async function syncData() {
     const btnSync = document.getElementById("btn-sync");
     if(btnSync) btnSync.innerText = "Sincronizando...";
     
-    const tx = db.transaction("registros", "readonly");
-    const store = tx.objectStore("registros");
-    const req = store.getAll();
-    
-    req.onsuccess = async () => {
-        const records = req.result;
+    try {
+        const database = await getDB();
+        const tx = database.transaction("registros", "readonly");
+        const store = tx.objectStore("registros");
+        
+        const records = await new Promise((resolve, reject) => {
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = (e) => reject(e);
+        });
+
         if(records.length === 0) return;
         
         let sincronizadosExitosamente = 0;
 
-        try {
-            for (let record of records) {
-                let rutaInternaFoto = "";
+        for (let record of records) {
+            let rutaInternaFoto = "";
 
-                if (record.foto_base64) {
-                    const blobFoto = dataURLtoBlob(record.foto_base64);
-                    const nombreArchivo = `inspecciones/${record.usuario.split('@')[0]}_${Date.now()}_${record.id_poste}.jpg`;
+            if (record.foto_base64 && record.foto_base64.startsWith('data:')) {
+                const blobFoto = dataURLtoBlob(record.foto_base64);
+                const nombreArchivo = `inspecciones/${record.usuario.split('@')[0]}_${Date.now()}_${record.id_poste}.jpg`;
 
-                    const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'image/jpeg',
-                            'x-upsert': 'true'
-                        },
-                        body: blobFoto
-                    });
-
-                    if (!resStorage.ok) {
-                        const errorText = await resStorage.text();
-                        console.error("ERROR DE STORAGE:", errorText);
-                        throw new Error("No se pudo subir la foto por restricciones de seguridad (RLS).");
-                    }
-                    
-                    rutaInternaFoto = nombreArchivo; 
-                }
-
-                const datosParaEnviar = {
-                    id_poste: record.id_poste,
-                    tipo_actividad: record.tipo_actividad,
-                    estado_incidencia: record.estado_incidencia || "OPERATIVA",
-                    sector_barrio: record.sector_barrio,
-                    descripcion_trabajo: record.descripcion_trabajo,
-                    usuario: record.usuario,
-                    municipio: record.municipio,
-                    latitud: record.latitud,
-                    longitud: record.longitud,
-                    timestamp: record.timestamp,
-                    foto_base64: rutaInternaFoto
-                };
-
-                const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+                const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${token}`,
-                        'Prefer': 'return=minimal'
+                        'Content-Type': 'image/jpeg',
+                        'x-upsert': 'true'
                     },
-                    body: JSON.stringify(datosParaEnviar)
+                    body: blobFoto
                 });
 
-                if (!resDb.ok) {
-                    throw new Error("Error al insertar el registro. Verifica permisos RLS en la tabla.");
+                if (!resStorage.ok) {
+                    const errorText = await resStorage.text();
+                    console.error("ERROR DE STORAGE:", errorText);
+                    throw new Error("No se pudo subir la foto por restricciones de seguridad (RLS).");
                 }
-
-                await new Promise((resolve, reject) => {
-                    const txDel = db.transaction("registros", "readwrite");
-                    const storeDel = txDel.objectStore("registros");
-                    const delReq = storeDel.delete(record.id);
-                    txDel.oncomplete = () => resolve();
-                    txDel.onerror = (e) => reject(e);
-                });
-
-                sincronizadosExitosamente++;
+                
+                rutaInternaFoto = nombreArchivo; 
+            } else {
+                rutaInternaFoto = record.foto_base64;
             }
-            
-            alert(`¡Sincronización segura exitosa! Se subieron ${sincronizadosExitosamente} registros.`);
-            checkQueue();
-            if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
 
-        } catch(e) {
-            console.error("Detalle del fallo de red durante sincronización:", e);
-            alert(`Sincronización interrumpida: ${e.message}. Se subieron ${sincronizadosExitosamente} registros.`);
-            checkQueue();
-            if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">...</span>)';
+            const datosParaEnviar = {
+                id_poste: record.id_poste,
+                tipo_actividad: record.tipo_actividad,
+                estado_incidencia: record.estado_incidencia || "OPERATIVA",
+                sector_barrio: record.sector_barrio,
+                descripcion_trabajo: record.descripcion_trabajo,
+                usuario: record.usuario,
+                municipio: record.municipio,
+                latitud: record.latitud,
+                longitud: record.longitud,
+                timestamp: record.timestamp,
+                foto_base64: rutaInternaFoto
+            };
+
+            const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token}`,
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(datosParaEnviar)
+            });
+
+            if (!resDb.ok) {
+                throw new Error("Error al insertar el registro. Verifica permisos RLS en la tabla.");
+            }
+
+            await new Promise((resolve, reject) => {
+                const txDel = database.transaction("registros", "readwrite");
+                const storeDel = txDel.objectStore("registros");
+                storeDel.delete(record.id);
+                txDel.oncomplete = () => resolve();
+                txDel.onerror = (e) => reject(e);
+            });
+
+            sincronizadosExitosamente++;
         }
-    };
+        
+        alert(`¡Sincronización segura exitosa! Se subieron ${sincronizadosExitosamente} registros.`);
+        checkQueue();
+        if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
+
+    } catch(e) {
+        console.error("Detalle del fallo durante sincronización:", e);
+        alert(`Sincronización interrumpida: ${e.message}`);
+        checkQueue();
+        if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">...</span>)';
+    }
 }
 
 function dataURLtoBlob(dataurl) {
@@ -434,19 +446,16 @@ function startQrScanner() {
     
     html5QrCode.start(
         { facingMode: "environment" }, 
-        {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-        },
-        (decodedText, decodedResult) => {
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
             const inputPoste = document.getElementById("id_poste");
             if(inputPoste) inputPoste.value = decodedText;
             alert("¡Código QR leído: " + decodedText + "!");
             stopQrScanner();
         },
-        (errorMessage) => {}
+        () => {}
     ).catch((err) => {
-        alert("No se pudo iniciar la cámara. Asegúrate de dar permisos en el navegador.");
+        alert("No se pudo iniciar la cámara. Asegúrate de dar permisos.");
         console.error(err);
         if(readerDiv) readerDiv.classList.add("hidden");
     });
@@ -464,7 +473,7 @@ function stopQrScanner() {
 }
 
 // ==========================================
-// 9. GESTIÓN DEL MAPA Y CARGA DE IMÁGENES SEGURO
+// 9. GESTIÓN DEL MAPA Y CARGA DE IMÁGENES
 // ==========================================
 let mapInstance = null;
 let markersLayer = null;
@@ -490,7 +499,6 @@ function initMap(registros = []) {
 
             const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
 
-            // EL ERROR ESTABA AQUÍ: El atributo src DEBE ser el base64 del gif, no reg.foto_base64.
             const popupContent = `
                 <div style="font-size: 0.85rem; padding: 4px;">
                     <b>Poste:</b> ${reg.id_poste}<br>
@@ -519,29 +527,23 @@ function initMap(registros = []) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] });
     }
 }
+
 async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     if (!rutaFoto) return;
     const el = document.getElementById(elementoImgId);
     if (!el) return;
 
-    // 1. Si es un registro offline recién guardado (Base64 puro), se muestra directo
     if (rutaFoto.startsWith('data:')) {
         el.src = rutaFoto;
         return;
     }
 
-    // 2. Extraer token para consultar Supabase
     const token = localStorage.getItem('supabase_access_token');
-    if (!token) {
-        console.error("Fallo de autenticación: No hay token para cargar imágenes privadas.");
-        return;
-    }
+    if (!token) return;
 
-    // 3. Normalizar la ruta del bucket (asegurar que empiece con la carpeta)
     const rutaLimpia = rutaFoto.startsWith('inspecciones/') ? rutaFoto : `inspecciones/${rutaFoto}`;
 
     try {
-        // 4. Pedir URL temporal a Supabase
         const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
             method: 'POST',
             headers: {
@@ -549,22 +551,20 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ expiresIn: 300 }) // Expira en 5 minutos
+            body: JSON.stringify({ expiresIn: 300 })
         });
 
         const data = await res.json();
         
         if (res.ok && data.signedURL) {
-            // 5. Asignar la URL segura al src (esto descarga la imagen real)
             const urlSegura = `${SUPABASE_URL}/storage/v1${data.signedURL}`;
             el.src = urlSegura;
             el.style.cursor = 'pointer';
             el.onclick = () => window.open(urlSegura, '_blank');
         } else {
-            console.error("Supabase rechazó la petición de firma:", data);
-            el.alt = "Imagen no disponible en el servidor";
+            console.error("Supabase rechazó la firma:", data);
         }
     } catch (e) {
-        console.error('Error de red crítico al solicitar URL firmada:', e);
+        console.error('Error al solicitar URL firmada:', e);
     }
 }
