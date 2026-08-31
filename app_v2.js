@@ -264,7 +264,8 @@ function checkQueue() {
         
         if(queueCount) queueCount.innerText = records.length;
         
-        if (records.length > 0 && navigator.onLine) {
+        // MODIFICACIÓN: Mostrar el botón si hay registros pendientes, sin bloquearnos por el estado de red local
+        if (records.length > 0) {
             if(btnSync) btnSync.classList.remove("hidden");
         } else {
             if(btnSync) btnSync.classList.add("hidden");
