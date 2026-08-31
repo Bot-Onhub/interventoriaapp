@@ -576,4 +576,4 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     } catch (e) {
         console.error('No se pudo cargar la miniatura privada:', e);
     }
-}
+} // <--- ESTA ES LA LLAVE QUE TE FALTA AL FINAL DEL ARCHIVO
