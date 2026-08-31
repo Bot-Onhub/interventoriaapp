@@ -573,7 +573,7 @@
                     <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${reg.latitud}, ${reg.longitud}</td>
                     <td style="font-size: 0.75rem; color: #64748b;">${fechaFormateada}</td>
                     <td style="text-align: center;">
-                        ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.foto_base64}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
+                        ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.id}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
                     </td>
                     <td style="text-align: center;" class="no-print">
                         ${estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? `<button onclick="marcarAtendida(${reg.id})" class="btn-action">Marcar Atendida</button>` : '<span style="font-size: 0.7rem; color: #94a3b8;">N/A</span>'}
@@ -583,31 +583,41 @@
             });
         }
 
-        function verFotoGrande(url) {
-            document.getElementById("img-modal").src = url;
-            document.getElementById("modal-foto").classList.remove("hidden");
+        function verFotoGrande(idRegistro) {
+            const registro = datosFiltrados.find(r => String(r.id) === String(idRegistro));
+            if (registro && registro.foto_base64) {
+                document.getElementById("img-modal").src = registro.foto_base64;
+                document.getElementById("modal-foto").classList.remove("hidden");
+            } else {
+                alert("No se encontró la imagen.");
+            }
         }
 
         function cerrarModalFoto() {
-            document.getElementById("modal-foto").classList.add("hidden");
+            const modal = document.getElementById("modal-foto");
+            modal.classList.add("hidden");
+            document.getElementById("img-modal").src = "";
         }
 
         function exportarCSV() {
             if (datosFiltrados.length === 0) return alert("No hay datos para exportar.");
 
-            let csvContent = "\uFEFFID Poste,Tipo Actividad,Estado Incidencia,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,URL Foto\n";
+            let csvContent = "\uFEFFID Poste,Tipo Actividad,Estado Incidencia,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,Tiene Evidencia\n";
             datosFiltrados.forEach(r => {
+                const tieneFoto = r.foto_base64 ? "SI" : "NO";
+                const descripcionLimpia = r.descripcion_trabajo ? r.descripcion_trabajo.replace(/"/g, '""').replace(/\n/g, ' ') : '';
+                
                 const fila = [
                     `"${r.id_poste || ''}"`,
                     `"${r.tipo_actividad || ''}"`,
                     `"${r.estado_incidencia || 'OPERATIVA'}"`,
                     `"${r.sector_barrio || ''}"`,
-                    `"${(r.descripcion_trabajo || '').replace(/"/g, '""')}"`,
+                    `"${descripcionLimpia}"`,
                     `"${r.usuario || ''}"`,
                     r.latitud || '',
                     r.longitud || '',
                     `"${r.timestamp || ''}"`,
-                    `"${r.foto_base64 || ''}"`
+                    `"${tieneFoto}"`
                 ].join(",");
                 csvContent += fila + "\n";
             });
@@ -620,6 +630,7 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function exportarPDF() {
