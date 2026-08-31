@@ -490,6 +490,7 @@ function initMap(registros = []) {
 
             const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
 
+            // EL ERROR ESTABA AQUÍ: El atributo src DEBE ser el base64 del gif, no reg.foto_base64.
             const popupContent = `
                 <div style="font-size: 0.85rem; padding: 4px;">
                     <b>Poste:</b> ${reg.id_poste}<br>
