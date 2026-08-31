@@ -498,7 +498,7 @@ function initMap(registros = []) {
                     <b>Sector:</b> ${reg.sector_barrio}<br>
                     <b>Municipio:</b> ${reg.municipio || 'General'}<br>
                     <b>Técnico:</b> ${reg.usuario}<br>
-                    ${reg.foto_base64 ? `<img id="${mapImgId}" src="" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px; background:#f0f0f0;" alt="Cargando evidencia...">` : ''}
+                    ${reg.foto_base64 ? `<img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">` : ''}
                 </div>
             `;
 
@@ -518,46 +518,52 @@ function initMap(registros = []) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] });
     }
 }
-
 async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     if (!rutaFoto) return;
-    
     const el = document.getElementById(elementoImgId);
     if (!el) return;
 
-    if (rutaFoto.startsWith('inspecciones/')) {
-        rutaFoto = rutaFoto.replace('inspecciones/', '');
-    }
-
+    // 1. Si es un registro offline recién guardado (Base64 puro), se muestra directo
     if (rutaFoto.startsWith('data:')) {
         el.src = rutaFoto;
         return;
     }
 
+    // 2. Extraer token para consultar Supabase
     const token = localStorage.getItem('supabase_access_token');
-    if (!token) return;
+    if (!token) {
+        console.error("Fallo de autenticación: No hay token para cargar imágenes privadas.");
+        return;
+    }
+
+    // 3. Normalizar la ruta del bucket (asegurar que empiece con la carpeta)
+    const rutaLimpia = rutaFoto.startsWith('inspecciones/') ? rutaFoto : `inspecciones/${rutaFoto}`;
 
     try {
-        const rutaLimpia = rutaFoto.includes('/') ? rutaFoto : 'inspecciones/' + rutaFoto;
-
-        const res = await fetch(SUPABASE_URL + '/storage/v1/object/sign/evidencias-inspeccion/' + rutaLimpia, {
+        // 4. Pedir URL temporal a Supabase
+        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ expiresIn: 300 })
+            body: JSON.stringify({ expiresIn: 300 }) // Expira en 5 minutos
         });
 
         const data = await res.json();
-        if (data.signedURL) {
-            const urlSegura = SUPABASE_URL + '/storage/v1' + data.signedURL;
+        
+        if (res.ok && data.signedURL) {
+            // 5. Asignar la URL segura al src (esto descarga la imagen real)
+            const urlSegura = `${SUPABASE_URL}/storage/v1${data.signedURL}`;
             el.src = urlSegura;
             el.style.cursor = 'pointer';
             el.onclick = () => window.open(urlSegura, '_blank');
+        } else {
+            console.error("Supabase rechazó la petición de firma:", data);
+            el.alt = "Imagen no disponible en el servidor";
         }
     } catch (e) {
-        console.error('No se pudo cargar la miniatura privada:', e);
+        console.error('Error de red crítico al solicitar URL firmada:', e);
     }
 }
