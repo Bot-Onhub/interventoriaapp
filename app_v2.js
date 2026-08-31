@@ -556,11 +556,11 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     const token = localStorage.getItem("supabase_access_token");
     if (!token) return;
 
-    try {
-        // Nota: Aseguramos que la ruta apunte correctamente al bucket 'evidencias-inspeccion'
-        const rutaLimpia = rutaFoto.includes('/') ? rutaFoto : `inspecciones/${rutaFoto}`;
+  try {
+        // Concatenación segura con comillas simples estándar
+        const rutaLimpia = rutaFoto.includes('/') ? rutaFoto : 'inspecciones/' + rutaFoto;
 
-        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
+        const res = await fetch(SUPABASE_URL + '/storage/v1/object/sign/evidencias-inspeccion/' + rutaLimpia, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
