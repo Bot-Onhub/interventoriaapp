@@ -76,7 +76,6 @@ async function login() {
         if (res.ok && data.access_token) {
             currentUser = email;
             
-            // Capturar el municipio desde los metadatos del usuario en Supabase
             const userMunicipio = (data.user && data.user.user_metadata && data.user.user_metadata.municipio) 
                                    ? data.user.user_metadata.municipio 
                                    : "General";
@@ -264,7 +263,6 @@ function checkQueue() {
         
         if(queueCount) queueCount.innerText = records.length;
         
-        // MODIFICACIÓN: Mostrar el botón si hay registros pendientes, sin bloquearnos por el estado de red local
         if (records.length > 0) {
             if(btnSync) btnSync.classList.remove("hidden");
         } else {
@@ -465,6 +463,9 @@ function stopQrScanner() {
     }
 }
 
+// ==========================================
+// 9. GESTIÓN DEL MAPA Y CARGA DE IMÁGENES SEGURO
+// ==========================================
 let mapInstance = null;
 let markersLayer = null;
 
@@ -487,8 +488,7 @@ function initMap(registros = []) {
             const latLng = [reg.latitud, reg.longitud];
             bounds.push(latLng);
 
-           // Generamos un ID único para esta foto en el mapa
-           const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
+            const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
 
             const popupContent = `
                 <div style="font-size: 0.85rem; padding: 4px;">
@@ -511,23 +511,6 @@ function initMap(registros = []) {
                     cargarMiniaturaSegura(reg.foto_base64, mapImgId);
                 });
             }
-            `;
-
-            const marker = L.marker(latLng)
-                .addTo(markersLayer)
-                .bindPopup(popupContent);
-
-            // Al abrir el popup del mapa, cargamos la foto privada de forma segura
-            if (reg.foto_base64) {
-                marker.on('popupopen', () => {
-                    cargarMiniaturaSegura(reg.foto_base64, mapImgId);
-                });
-            }
-            ;
-
-            L.marker(latLng)
-                .addTo(markersLayer)
-                .bindPopup(popupContent);
         }
     });
 
@@ -535,6 +518,7 @@ function initMap(registros = []) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] });
     }
 }
+
 async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     if (!rutaFoto) return;
     
