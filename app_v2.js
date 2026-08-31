@@ -75,8 +75,14 @@ async function login() {
         
         if (res.ok && data.access_token) {
             currentUser = email;
+            // NUEVO: Capturar el municipio desde los metadatos del usuario en Supabase
+            const userMunicipio = (data.user && data.user.user_metadata && data.user.user_metadata.municipio) 
+                                   ? data.user.user_metadata.municipio 
+                                   : "General";
+            
             localStorage.setItem("user", email);
             localStorage.setItem("supabase_access_token", data.access_token);
+            localStorage.setItem("municipio", userMunicipio); // Guardamos el tenant
             
             document.getElementById("login-screen").classList.add("hidden");
             document.getElementById("app-screen").classList.remove("hidden");
@@ -195,6 +201,7 @@ async function saveRecord() {
             sector_barrio: sectorBarrio,
             descripcion_trabajo: descripcionTrabajo,
             usuario: currentUser,
+            municipio: tenantActual, // <--- NUEVO: Queda sellado con el municipio
             latitud: currentGPS.lat,
             longitud: currentGPS.lng,
             timestamp: new Date().toISOString(),
@@ -334,6 +341,7 @@ async function syncData() {
                     sector_barrio: record.sector_barrio,
                     descripcion_trabajo: record.descripcion_trabajo,
                     usuario: record.usuario,
+                    municipio: record.municipio, // <--- NUEVO: Se envía a Supabase
                     latitud: record.latitud,
                     longitud: record.longitud,
                     timestamp: record.timestamp,
