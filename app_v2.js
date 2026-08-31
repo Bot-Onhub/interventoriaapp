@@ -487,6 +487,9 @@ function initMap(registros = []) {
             const latLng = [reg.latitud, reg.longitud];
             bounds.push(latLng);
 
+           // Generamos un ID único para esta foto en el mapa
+            const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
+
             const popupContent = `
                 <div style="font-size: 0.85rem; padding: 4px;">
                     <b>Poste:</b> ${reg.id_poste}<br>
@@ -495,9 +498,21 @@ function initMap(registros = []) {
                     <b>Sector:</b> ${reg.sector_barrio}<br>
                     <b>Municipio:</b> ${reg.municipio || 'General'}<br>
                     <b>Técnico:</b> ${reg.usuario}<br>
-                    ${reg.foto_base64 ? `<img src="${reg.foto_base64}" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px;">` : ''}
+                    ${reg.foto_base64 ? `<img id="${mapImgId}" src="" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px; background:#f0f0f0;" alt="Cargando...">` : ''}
                 </div>
             `;
+
+            const marker = L.marker(latLng)
+                .addTo(markersLayer)
+                .bindPopup(popupContent);
+
+            // Al abrir el popup del mapa, cargamos la foto privada de forma segura
+            if (reg.foto_base64) {
+                marker.on('popupopen', () => {
+                    cargarMiniaturaSegura(reg.foto_base64, mapImgId);
+                });
+            }
+            ;
 
             L.marker(latLng)
                 .addTo(markersLayer)
@@ -509,3 +524,42 @@ function initMap(registros = []) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] });
     }
 }
+async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
+    if (!rutaFoto) return;
+    
+    // Si es un registro viejo guardado en base64 localmente
+    if (rutaFoto.startsWith('data:')) {
+        const el = document.getElementById(elementoImgId);
+        if (el) el.src = rutaFoto;
+        return;
+    }
+
+    const token = localStorage.getItem("supabase_access_token");
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaFoto}`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ expiresIn: 300 }) // URL válida por 5 minutos
+        });
+
+        const data = await res.json();
+        if (data.signedURL) {
+            const urlSegura = `${SUPABASE_URL}/storage/v1${data.signedURL}`;
+            const el = document.getElementById(elementoImgId);
+            if (el) {
+                el.src = urlSegura;
+                el.style.cursor = "pointer";
+                el.onclick = () => window.open(urlSegura, '_blank'); // Al hacer clic se amplía
+            }
+        }
+    } catch (e) {
+        console.error("No se pudo cargar la miniatura privada:", e);
+    }
+}
+
