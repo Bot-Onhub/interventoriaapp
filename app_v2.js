@@ -527,10 +527,18 @@ function initMap(registros = []) {
 async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     if (!rutaFoto) return;
     
-    // Si es un registro viejo guardado en base64 localmente
+    const el = document.getElementById(elementoImgId);
+    if (!el) return;
+
+    // Si por alguna razón la ruta apunta erróneamente a la carpeta local de GitHub
+    if (rutaFoto.startsWith('inspecciones/')) {
+        // Le quitamos el prefijo local y asumimos que es la ruta de Supabase Storage
+        rutaFoto = rutaFoto.replace('inspecciones/', '');
+    }
+
+    // Si es un registro antiguo guardado en base64 localmente
     if (rutaFoto.startsWith('data:')) {
-        const el = document.getElementById(elementoImgId);
-        if (el) el.src = rutaFoto;
+        el.src = rutaFoto;
         return;
     }
 
@@ -538,7 +546,10 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     if (!token) return;
 
     try {
-        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaFoto}`, {
+        // Nota: Aseguramos que la ruta apunte correctamente al bucket 'evidencias-inspeccion'
+        const rutaLimpia = rutaFoto.includes('/') ? rutaFoto : `inspecciones/${rutaFoto}`;
+
+        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -551,15 +562,13 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
         const data = await res.json();
         if (data.signedURL) {
             const urlSegura = `${SUPABASE_URL}/storage/v1${data.signedURL}`;
-            const el = document.getElementById(elementoImgId);
-            if (el) {
-                el.src = urlSegura;
-                el.style.cursor = "pointer";
-                el.onclick = () => window.open(urlSegura, '_blank'); // Al hacer clic se amplía
-            }
+            el.src = urlSegura;
+            el.style.cursor = "pointer";
+            el.onclick = () => window.open(urlSegura, '_blank'); // Al hacer clic se amplía
+        } else {
+            console.error("Supabase no devolvió signedURL:", data);
         }
     } catch (e) {
         console.error("No se pudo cargar la miniatura privada:", e);
     }
 }
-
