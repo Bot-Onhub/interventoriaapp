@@ -215,14 +215,14 @@ async function saveRecord() {
             
             tx.oncomplete = () => {
                 alert("Inspección guardada exitosamente en el equipo.");
-                .getElementById("id_poste").value = "";
-                .getElementById("tipo_actividad").value = "";
-                .getElementById("estado_incidencia").value = "OPERATIVA";
-                .getElementById("sector_barrio").value = "";
-                .getElementById("descripcion_trabajo").value = "";
-                .getElementById("cameraInput").value = "";
+                document.getElementById("id_poste").value = "";
+                document.getElementById("tipo_actividad").value = "";
+                document.getElementById("estado_incidencia").value = "OPERATIVA";
+                document.getElementById("sector_barrio").value = "";
+                document.getElementById("descripcion_trabajo").value = "";
+                document.getElementById("cameraInput").value = "";
                 currentGPS = null;
-                const gpsData = .getElementById("gps-data");
+                const gpsData = document.getElementById("gps-data");
                 if(gpsData) gpsData.innerText = "GPS no capturado";
                 checkQueue();
                 initMapFromLocal(); 
