@@ -564,7 +564,7 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${token}',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ expiresIn: 300 }) // URL válida por 5 minutos
