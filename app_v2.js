@@ -541,45 +541,39 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     const el = document.getElementById(elementoImgId);
     if (!el) return;
 
-    // Si por alguna razón la ruta apunta erróneamente a la carpeta local de GitHub
     if (rutaFoto.startsWith('inspecciones/')) {
-        // Le quitamos el prefijo local y asumimos que es la ruta de Supabase Storage
         rutaFoto = rutaFoto.replace('inspecciones/', '');
     }
 
-    // Si es un registro antiguo guardado en base64 localmente
     if (rutaFoto.startsWith('data:')) {
         el.src = rutaFoto;
         return;
     }
 
-    const token = localStorage.getItem("supabase_access_token");
+    const token = localStorage.getItem('supabase_access_token');
     if (!token) return;
 
-  try {
-        // Concatenación segura con comillas simples estándar
+    try {
         const rutaLimpia = rutaFoto.includes('/') ? rutaFoto : 'inspecciones/' + rutaFoto;
 
         const res = await fetch(SUPABASE_URL + '/storage/v1/object/sign/evidencias-inspeccion/' + rutaLimpia, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${token}',
+                'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ expiresIn: 300 }) // URL válida por 5 minutos
+            body: JSON.stringify({ expiresIn: 300 })
         });
 
         const data = await res.json();
         if (data.signedURL) {
-            const urlSegura = `${SUPABASE_URL}/storage/v1${data.signedURL}`;
+            const urlSegura = SUPABASE_URL + '/storage/v1' + data.signedURL;
             el.src = urlSegura;
-            el.style.cursor = "pointer";
-            el.onclick = () => window.open(urlSegura, '_blank'); // Al hacer clic se amplía
-        } else {
-            console.error("Supabase no devolvió signedURL:", data);
+            el.style.cursor = 'pointer';
+            el.onclick = () => window.open(urlSegura, '_blank');
         }
     } catch (e) {
-        console.error("No se pudo cargar la miniatura privada:", e);
+        console.error('No se pudo cargar la miniatura privada:', e);
     }
 }
