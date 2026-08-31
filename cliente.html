@@ -572,9 +572,11 @@
                     <td style="color: #64748b;">${reg.usuario || 'N/D'}</td>
                     <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${reg.latitud}, ${reg.longitud}</td>
                     <td style="font-size: 0.75rem; color: #64748b;">${fechaFormateada}</td>
-                    <td style="text-align: center;">
-                        ${reg.foto_base64 ? `<button onclick="verFotoGrande('${reg.id}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
-                    </td>
+                   <td style="text-align: center;">
+    ${reg.foto_base64 && (reg.foto_base64.startsWith('data:image') || reg.foto_base64.startsWith('http')) ? 
+        `<button onclick="verFotoGrande('${reg.id}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` 
+        : '<span style="font-size: 0.75rem; color: #94a3b8;" title="El registro solo contiene un nombre de archivo, no la imagen real">Archivo no disponible</span>'}
+</td>
                     <td style="text-align: center;" class="no-print">
                         ${estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? `<button onclick="marcarAtendida(${reg.id})" class="btn-action">Marcar Atendida</button>` : '<span style="font-size: 0.7rem; color: #94a3b8;">N/A</span>'}
                     </td>
