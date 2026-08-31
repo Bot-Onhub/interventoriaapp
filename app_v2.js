@@ -45,7 +45,7 @@ function updateOnlineStatus() {
 }
 
 // ==========================================
-// 4. SISTEMA DE LOGIN (Vía Supabase Auth)
+// 4. SISTEMA DE LOGIN (Vía Supabase Auth con Municipio)
 // ==========================================
 async function login() {
     const email = document.getElementById("user").value;
@@ -75,14 +75,15 @@ async function login() {
         
         if (res.ok && data.access_token) {
             currentUser = email;
-            // NUEVO: Capturar el municipio desde los metadatos del usuario en Supabase
+            
+            // Capturar el municipio desde los metadatos del usuario en Supabase
             const userMunicipio = (data.user && data.user.user_metadata && data.user.user_metadata.municipio) 
                                    ? data.user.user_metadata.municipio 
                                    : "General";
             
             localStorage.setItem("user", email);
             localStorage.setItem("supabase_access_token", data.access_token);
-            localStorage.setItem("municipio", userMunicipio); // Guardamos el tenant
+            localStorage.setItem("municipio", userMunicipio);
             
             document.getElementById("login-screen").classList.add("hidden");
             document.getElementById("app-screen").classList.remove("hidden");
@@ -157,7 +158,7 @@ async function saveRecord() {
     img.onload = function() {
         URL.revokeObjectURL(imageUrl);
         
-        const canvas = .createElement("canvas");
+        const canvas = document.createElement("canvas");
         const MAX_WIDTH = 1000; 
         const MAX_HEIGHT = 1000;
         let width = img.width;
@@ -193,6 +194,7 @@ async function saveRecord() {
         ctx.fillText(`GPS: Lat ${currentGPS.lat.toFixed(5)}, Lon ${currentGPS.lng.toFixed(5)} | TÉCNICO: ${currentUser}`, 15, height - 17);
 
         const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.8);
+        const tenantActual = localStorage.getItem("municipio") || "General";
 
         const record = {
             id_poste: idPoste.toUpperCase(),
@@ -201,7 +203,7 @@ async function saveRecord() {
             sector_barrio: sectorBarrio,
             descripcion_trabajo: descripcionTrabajo,
             usuario: currentUser,
-            municipio: tenantActual, // <--- NUEVO: Queda sellado con el municipio
+            municipio: tenantActual,
             latitud: currentGPS.lat,
             longitud: currentGPS.lng,
             timestamp: new Date().toISOString(),
@@ -257,8 +259,8 @@ function checkQueue() {
     const req = store.getAll();
     req.onsuccess = () => {
         const records = req.result;
-        const queueCount = .getElementById("queue-count");
-        const btnSync = .getElementById("btn-sync");
+        const queueCount = document.getElementById("queue-count");
+        const btnSync = document.getElementById("btn-sync");
         
         if(queueCount) queueCount.innerText = records.length;
         
@@ -293,7 +295,7 @@ async function syncData() {
         return;
     }
 
-    const btnSync = .getElementById("btn-sync");
+    const btnSync = document.getElementById("btn-sync");
     if(btnSync) btnSync.innerText = "Sincronizando...";
     
     const tx = db.transaction("registros", "readonly");
@@ -341,7 +343,7 @@ async function syncData() {
                     sector_barrio: record.sector_barrio,
                     descripcion_trabajo: record.descripcion_trabajo,
                     usuario: record.usuario,
-                    municipio: record.municipio, // <--- NUEVO: Se envía a Supabase
+                    municipio: record.municipio,
                     latitud: record.latitud,
                     longitud: record.longitud,
                     timestamp: record.timestamp,
@@ -412,16 +414,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = localStorage.getItem("user");
 
     if (token && user) {
-        // Si ya hay una sesión activa guardada
         if (loginScreen) loginScreen.classList.add("hidden");
         if (appScreen) appScreen.classList.remove("hidden");
         setTimeout(() => initMapFromLocal(), 500);
     } else {
-        // Si NO hay sesión, forzamos obligatoriamente que se muestre el login
         if (loginScreen) loginScreen.classList.remove("hidden");
         if (appScreen) appScreen.classList.add("hidden");
     }
 });
+
 let html5QrCode = null;
 
 function startQrScanner() {
@@ -491,6 +492,7 @@ function initMap(registros = []) {
                     <b>Actividad:</b> ${reg.tipo_actividad}<br>
                     <b>Estado:</b> ${reg.estado_incidencia || 'N/A'}<br>
                     <b>Sector:</b> ${reg.sector_barrio}<br>
+                    <b>Municipio:</b> ${reg.municipio || 'General'}<br>
                     <b>Técnico:</b> ${reg.usuario}<br>
                     ${reg.foto_base64 ? `<img src="${reg.foto_base64}" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px;">` : ''}
                 </div>
