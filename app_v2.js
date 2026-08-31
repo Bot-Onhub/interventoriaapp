@@ -488,7 +488,7 @@ function initMap(registros = []) {
             bounds.push(latLng);
 
            // Generamos un ID único para esta foto en el mapa
-            const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
+           const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
 
             const popupContent = `
                 <div style="font-size: 0.85rem; padding: 4px;">
@@ -498,8 +498,19 @@ function initMap(registros = []) {
                     <b>Sector:</b> ${reg.sector_barrio}<br>
                     <b>Municipio:</b> ${reg.municipio || 'General'}<br>
                     <b>Técnico:</b> ${reg.usuario}<br>
-                    ${reg.foto_base64 ? `<img id="${mapImgId}" src="" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px; background:#f0f0f0;" alt="Cargando...">` : ''}
+                    ${reg.foto_base64 ? `<img id="${mapImgId}" src="" style="width: 120px; height: auto; border-radius: 4px; margin-top: 5px; background:#f0f0f0;" alt="Cargando evidencia...">` : ''}
                 </div>
+            `;
+
+            const marker = L.marker(latLng)
+                .addTo(markersLayer)
+                .bindPopup(popupContent);
+
+            if (reg.foto_base64) {
+                marker.on('popupopen', () => {
+                    cargarMiniaturaSegura(reg.foto_base64, mapImgId);
+                });
+            }
             `;
 
             const marker = L.marker(latLng)
