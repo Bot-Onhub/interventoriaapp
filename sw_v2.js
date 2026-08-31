@@ -1,5 +1,5 @@
 // sw_v2.js - Service Worker para Soporte Offline (PWA) V2
-const CACHE_NAME = 'interventoria-v2-cache-v1';
+const CACHE_NAME = 'interventoria-v3-cache-v1';
 const ASSETS_TO_CACHE = [
     './index_v2.html',
     './app_v2.js', // O './app_v2.js' según cómo lo nombres, pero asegúrate de que coincida con tus archivos
