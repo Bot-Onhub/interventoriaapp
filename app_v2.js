@@ -4,7 +4,6 @@
 const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg"; 
 const SUPABASE_TABLE = "registros_interventoria"; 
-
 let currentUser = localStorage.getItem("user") || "";
 const getSupabaseToken = () => localStorage.getItem("supabase_access_token");
 
@@ -34,7 +33,6 @@ function getDB() {
 // ==========================================
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-
 async function updateOnlineStatus() {
     const ind = document.getElementById("status-indicator");
     if (!ind) return;
@@ -161,7 +159,6 @@ async function saveRecord() {
         const MAX_HEIGHT = 1000;
         let width = img.width;
         let height = img.height;
-
         if (width > height) {
             if (width > MAX_WIDTH) {
                 height *= MAX_WIDTH / width;
@@ -173,26 +170,21 @@ async function saveRecord() {
                 height = MAX_HEIGHT;
             }
         }
-
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-
         const altoPanel = 70;
         ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
         ctx.fillRect(0, height - altoPanel, width, altoPanel);
-
         ctx.fillStyle = "white";
         ctx.font = "bold 16px Arial, sans-serif";
         const fechaActual = new Date().toLocaleString("es-CO");
         
         ctx.fillText(`POSTE: ${idPoste.toUpperCase()} | FECHA: ${fechaActual}`, 15, height - 42);
         ctx.fillText(`GPS: Lat ${currentGPS.lat.toFixed(5)}, Lon ${currentGPS.lng.toFixed(5)} | TÉCNICO: ${currentUser}`, 15, height - 17);
-
         const fotoComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.8);
         const tenantActual = localStorage.getItem("municipio") || "General";
-
         const record = {
             id_poste: idPoste.toUpperCase(),
             tipo_actividad: tipoActividad,
@@ -227,7 +219,6 @@ async function saveRecord() {
                 checkQueue();
                 initMapFromLocal(); 
             };
-
             tx.onerror = (e) => {
                 console.error("Error en transacción IndexedDB:", e);
                 alert("Error al guardar localmente en el equipo.");
@@ -300,7 +291,6 @@ async function syncData() {
         alert("Error: Sesión no válida. Cierra sesión y vuelve a ingresar.");
         return;
     }
-
     const btnSync = document.getElementById("btn-sync");
     if(btnSync) btnSync.innerText = "Sincronizando...";
     
@@ -314,18 +304,14 @@ async function syncData() {
             req.onsuccess = () => resolve(req.result);
             req.onerror = (e) => reject(e);
         });
-
         if(records.length === 0) return;
         
         let sincronizadosExitosamente = 0;
-
         for (let record of records) {
             let rutaInternaFoto = "";
-
             if (record.foto_base64 && record.foto_base64.startsWith('data:')) {
                 const blobFoto = dataURLtoBlob(record.foto_base64);
                 const nombreArchivo = `inspecciones/${record.usuario.split('@')[0]}_${Date.now()}_${record.id_poste}.jpg`;
-
                 const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
                     method: 'POST',
                     headers: {
@@ -336,7 +322,6 @@ async function syncData() {
                     },
                     body: blobFoto
                 });
-
                 if (!resStorage.ok) {
                     const errorText = await resStorage.text();
                     console.error("ERROR DE STORAGE:", errorText);
@@ -347,7 +332,6 @@ async function syncData() {
             } else {
                 rutaInternaFoto = record.foto_base64;
             }
-
             const datosParaEnviar = {
                 id_poste: record.id_poste,
                 tipo_actividad: record.tipo_actividad,
@@ -361,7 +345,6 @@ async function syncData() {
                 timestamp: record.timestamp,
                 foto_base64: rutaInternaFoto
             };
-
             const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
                 method: 'POST',
                 headers: {
@@ -372,11 +355,9 @@ async function syncData() {
                 },
                 body: JSON.stringify(datosParaEnviar)
             });
-
             if (!resDb.ok) {
                 throw new Error("Error al insertar el registro. Verifica permisos RLS en la tabla.");
             }
-
             await new Promise((resolve, reject) => {
                 const txDel = database.transaction("registros", "readwrite");
                 const storeDel = txDel.objectStore("registros");
@@ -384,14 +365,12 @@ async function syncData() {
                 txDel.oncomplete = () => resolve();
                 txDel.onerror = (e) => reject(e);
             });
-
             sincronizadosExitosamente++;
         }
         
         alert(`¡Sincronización segura exitosa! Se subieron ${sincronizadosExitosamente} registros.`);
         checkQueue();
         if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
-
     } catch(e) {
         console.error("Detalle del fallo durante sincronización:", e);
         alert(`Sincronización interrumpida: ${e.message}`);
@@ -415,7 +394,6 @@ function dataURLtoBlob(dataurl) {
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     updateOnlineStatus();
     
@@ -423,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const appScreen = document.getElementById("app-screen");
     const token = localStorage.getItem("supabase_access_token");
     const user = localStorage.getItem("user");
-
     if (token && user) {
         if (loginScreen) loginScreen.classList.add("hidden");
         if (appScreen) appScreen.classList.remove("hidden");
@@ -435,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let html5QrCode = null;
-
 function startQrScanner() {
     const readerDiv = document.getElementById("reader");
     if(readerDiv) readerDiv.classList.remove("hidden");
@@ -477,7 +453,6 @@ function stopQrScanner() {
 // ==========================================
 let mapInstance = null;
 let markersLayer = null;
-
 function initMap(registros = []) {
     if (!mapInstance) {
         mapInstance = L.map('map').setView([6.168, -75.591], 13);
@@ -489,16 +464,12 @@ function initMap(registros = []) {
     } else {
         markersLayer.clearLayers();
     }
-
     let bounds = [];
-
     registros.forEach(reg => {
         if (reg.latitud && reg.longitud) {
             const latLng = [reg.latitud, reg.longitud];
             bounds.push(latLng);
-
             const mapImgId = `map_img_${reg.id_poste}_${Math.random().toString(36).substring(2, 7)}`;
-
             const popupContent = `
                 <div style="font-size: 0.85rem; padding: 4px;">
                     <b>Poste:</b> ${reg.id_poste}<br>
@@ -510,11 +481,9 @@ function initMap(registros = []) {
                     ${reg.foto_base64 ? `<img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">` : ''}
                 </div>
             `;
-
             const marker = L.marker(latLng)
                 .addTo(markersLayer)
                 .bindPopup(popupContent);
-
             if (reg.foto_base64) {
                 marker.on('popupopen', () => {
                     cargarMiniaturaSegura(reg.foto_base64, mapImgId);
@@ -522,7 +491,6 @@ function initMap(registros = []) {
             }
         }
     });
-
     if (bounds.length > 0) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] });
     }
@@ -532,17 +500,13 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
     if (!rutaFoto) return;
     const el = document.getElementById(elementoImgId);
     if (!el) return;
-
     if (rutaFoto.startsWith('data:')) {
         el.src = rutaFoto;
         return;
     }
-
     const token = localStorage.getItem('supabase_access_token');
     if (!token) return;
-
     const rutaLimpia = rutaFoto.startsWith('inspecciones/') ? rutaFoto : `inspecciones/${rutaFoto}`;
-
     try {
         const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
             method: 'POST',
@@ -553,7 +517,6 @@ async function cargarMiniaturaSegura(rutaFoto, elementoImgId) {
             },
             body: JSON.stringify({ expiresIn: 300 })
         });
-
         const data = await res.json();
         
         if (res.ok && data.signedURL) {
