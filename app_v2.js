@@ -291,94 +291,132 @@ async function syncData() {
         alert("Error: Sesión no válida. Cierra sesión y vuelve a ingresar.");
         return;
     }
+    
     const btnSync = document.getElementById("btn-sync");
     if(btnSync) btnSync.innerText = "Sincronizando...";
     
     try {
         const database = await getDB();
-        const tx = database.transaction("registros", "readonly");
-        const store = tx.objectStore("registros");
+        
+        // Abrir transacción de lectura para obtener los pendientes
+        const txRead = database.transaction("registros", "readonly");
+        const storeRead = txRead.objectStore("registros");
         
         const records = await new Promise((resolve, reject) => {
-            const req = store.getAll();
+            const req = storeRead.getAll();
             req.onsuccess = () => resolve(req.result);
             req.onerror = (e) => reject(e);
         });
-        if(records.length === 0) return;
-        
-        let sincronizadosExitosamente = 0;
-        for (let record of records) {
-            let rutaInternaFoto = "";
-            if (record.foto_base64 && record.foto_base64.startsWith('data:')) {
-                const blobFoto = dataURLtoBlob(record.foto_base64);
-                const nombreArchivo = `inspecciones/${record.usuario.split('@')[0]}_${Date.now()}_${record.id_poste}.jpg`;
-                const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'image/jpeg',
-                        'x-upsert': 'true'
-                    },
-                    body: blobFoto
-                });
-                if (!resStorage.ok) {
-                    const errorText = await resStorage.text();
-                    console.error("ERROR DE STORAGE:", errorText);
-                    throw new Error("No se pudo subir la foto por restricciones de seguridad (RLS).");
-                }
-                
-                rutaInternaFoto = nombreArchivo; 
-            } else {
-                rutaInternaFoto = record.foto_base64;
-            }
-            const datosParaEnviar = {
-                id_poste: record.id_poste,
-                tipo_actividad: record.tipo_actividad,
-                estado_incidencia: record.estado_incidencia || "OPERATIVA",
-                sector_barrio: record.sector_barrio,
-                descripcion_trabajo: record.descripcion_trabajo,
-                usuario: record.usuario,
-                municipio: record.municipio,
-                latitud: record.latitud,
-                longitud: record.longitud,
-                timestamp: record.timestamp,
-                foto_base64: rutaInternaFoto
-            };
-            const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${token}`,
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(datosParaEnviar)
-            });
-            if (!resDb.ok) {
-                throw new Error("Error al insertar el registro. Verifica permisos RLS en la tabla.");
-            }
-            await new Promise((resolve, reject) => {
-                const txDel = database.transaction("registros", "readwrite");
-                const storeDel = txDel.objectStore("registros");
-                storeDel.delete(record.id);
-                txDel.oncomplete = () => resolve();
-                txDel.onerror = (e) => reject(e);
-            });
-            sincronizadosExitosamente++;
+
+        if (!records || records.length === 0) {
+            alert("No hay registros pendientes por sincronizar.");
+            if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
+            return;
         }
         
-        alert(`¡Sincronización segura exitosa! Se subieron ${sincronizadosExitosamente} registros.`);
-        checkQueue();
+        let sincronizadosExitosamente = 0;
+        let fallidos = 0;
+
+        for (let record of records) {
+            try {
+                let rutaInternaFoto = "";
+                
+                // 1. Subir imagen a Supabase Storage si es un Base64 nuevo
+                if (record.foto_base64 && record.foto_base64.startsWith('data:')) {
+                    const blobFoto = dataURLtoBlob(record.foto_base64);
+                    const usuarioLimpios = (record.usuario || 'operario').split('@')[0];
+                    const nombreArchivo = `inspecciones/${usuarioLimpios}_${Date.now()}_${record.id_poste || 'sin_id'}.jpg`;
+                    
+                    const resStorage = await fetch(`${SUPABASE_URL}/storage/v1/object/evidencias-inspeccion/${nombreArchivo}`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'image/jpeg',
+                            'x-upsert': 'true'
+                        },
+                        body: blobFoto
+                    });
+                    
+                    if (!resStorage.ok) {
+                        const errorText = await resStorage.text();
+                        console.error("ERROR DE STORAGE:", errorText);
+                        throw new Error("No se pudo subir la foto al Storage de Supabase.");
+                    }
+                    
+                    rutaInternaFoto = nombreArchivo; 
+                } else {
+                    rutaInternaFoto = record.foto_base64 || "";
+                }
+
+                // 2. Preparar el payload asegurando que no vaya ningún campo undefined
+                const datosParaEnviar = {
+                    id_poste: record.id_poste || '',
+                    tipo_actividad: record.tipo_actividad || '',
+                    estado_incidencia: record.estado_incidencia || "OPERATIVA",
+                    sector_barrio: record.sector_barrio || '',
+                    descripcion_trabajo: record.descripcion_trabajo || '',
+                    usuario: record.usuario || '',
+                    municipio: record.municipio || '',
+                    latitud: record.latitud !== undefined ? record.latitud : null,
+                    longitud: record.longitud !== undefined ? record.longitud : null,
+                    timestamp: record.timestamp || new Date().toISOString(),
+                    foto_base64: rutaInternaFoto
+                };
+
+                // 3. Insertar el registro en la tabla principal de Supabase
+                const resDb = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${token}`,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(datosParaEnviar)
+                });
+
+                if (!resDb.ok) {
+                    const errorDbText = await resDb.text();
+                    console.error("ERROR DE TABLA SUPABASE:", errorDbText);
+                    throw new Error("Error al insertar el registro en la tabla.");
+                }
+
+                // 4. Si se guardó con éxito en la nube, eliminar de IndexedDB de forma segura
+                await new Promise((resolve, reject) => {
+                    const txDel = database.transaction("registros", "readwrite");
+                    const storeDel = txDel.objectStore("registros");
+                    storeDel.delete(record.id);
+                    txDel.oncomplete = () => resolve();
+                    txDel.onerror = (e) => reject(e);
+                });
+
+                sincronizadosExitosamente++;
+
+            } catch (errItem) {
+                console.error(`Fallo al sincronizar el registro ID ${record.id}:`, errItem);
+                fallidos++;
+                // Continuamos con el siguiente registro en lugar de romper todo el ciclo
+            }
+        }
+        
+        // Actualizar interfaz al finalizar el barrido
+        if (typeof checkQueue === 'function') checkQueue();
         if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">0</span>)';
+
+        if (fallidos === 0) {
+            alert(`¡Sincronización exitosa! Se subieron ${sincronizadosExitosamente} registros a la tabla.`);
+        } else {
+            alert(`Sincronización parcial: Se subieron ${sincronizadosExitosamente}, pero ${fallidos} registros fallaron y siguen respaldados localmente.`);
+        }
+
     } catch(e) {
-        console.error("Detalle del fallo durante sincronización:", e);
+        console.error("Detalle general del fallo durante sincronización:", e);
         alert(`Sincronización interrumpida: ${e.message}`);
-        checkQueue();
+        if (typeof checkQueue === 'function') checkQueue();
         if(btnSync) btnSync.innerHTML = 'Sincronizar Pendientes (<span id="queue-count">...</span>)';
     }
 }
-
 function dataURLtoBlob(dataurl) {
     let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
         bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
