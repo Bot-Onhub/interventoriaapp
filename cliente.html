@@ -255,11 +255,12 @@
     <!-- LEAFLET JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+    <!-- LEAFLET JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         const SUPABASE_URL = "https://onxhuhjimbucnomwwcsn.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ueGh1aGppbWJ1Y25vbXd3Y3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjYyMDksImV4cCI6MjEwMzUwMjIwOX0.mNYVLb6FZenWcJIy_k29lDWzFhB88SrI8v6tHPkrWsg";
         const SUPABASE_TABLE = "registros_interventoria";
-
         let mapInstance = null;
         let markersLayer = null;
         let datosCache = [];
@@ -276,63 +277,55 @@
             } else {
                 markersLayer.clearLayers();
             }
-
             let bounds = [];
-            // Dentro de la función que recorre los datos para el mapa:
-registros.forEach(reg => {
-    if (reg.latitud && reg.longitud) {
-        const latLng = [parseFloat(reg.latitud), parseFloat(reg.longitud)];
-        bounds.push(latLng);
-
-        // 1. Generar un ID único para la imagen dentro del bucle
-        const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
-
-        // 2. Construir el HTML del popup dejando la imagen vacía por defecto
-        const popupContent = `
-            <div style="font-size: 0.85rem; padding: 4px;">
-                <b>Poste:</b> ${reg.id_poste || 'N/D'}<br>
-                <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
-                ${reg.foto_base64 ? `
-                    <img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">
-                ` : '<span>Sin evidencia</span>'}
-            </div>
-        `;
-
-        // 3. Crear el marcador en el mapa
-        const marker = L.marker(latLng)
-            .addTo(markersLayer)
-            .bindPopup(popupContent);
-
-        // 4. Disparar la petición segura solo al abrir el popup
-        if (reg.foto_base64) {
-            marker.on('popupopen', () => {
-                cargarMiniaturaTablaSegura(reg.foto_base64, mapImgId);
+            registros.forEach(reg => {
+                if (reg.latitud && reg.longitud) {
+                    const latLng = [parseFloat(reg.latitud), parseFloat(reg.longitud)];
+                    bounds.push(latLng);
+                    
+                    const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
+                    const popupContent = `
+                        <div style="font-size: 0.85rem; padding: 4px;">
+                            <b>Poste:</b> ${reg.id_poste || 'N/D'}<br>
+                            <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
+                            ${reg.foto_base64 ? `
+                                <img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">
+                            ` : '<span>Sin evidencia</span>'}
+                        </div>
+                    `;
+                    const marker = L.marker(latLng)
+                        .addTo(markersLayer)
+                        .bindPopup(popupContent);
+                    if (reg.foto_base64) {
+                        marker.on('popupopen', () => {
+                            cargarMiniaturaTablaSegura(reg.foto_base64, mapImgId);
+                        });
+                    }
+                }
             });
+            if (bounds.length > 0) {
+                mapInstance.fitBounds(bounds, { padding: [50, 50] });
+            }
+            setTimeout(() => {
+                if (mapInstance) mapInstance.invalidateSize();
+            }, 150);
         }
-    }
-});
 
         async function loginCliente() {
             const email = document.getElementById("cliente_user").value.trim().toLowerCase();
             const pass = document.getElementById("cliente_pass").value.trim();
-
             if (!email || !pass) return alert("Por favor ingresa usuario y contraseña.");
-
             document.querySelector("#login-cliente-screen button").innerText = "Autenticando...";
-
             try {
                 const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
                     method: 'POST',
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, password: pass })
                 });
-
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error_description || data.msg || "Credenciales incorrectas");
-
                 localStorage.setItem("supabase_access_token", data.access_token);
                 localStorage.setItem("cliente_email", email);
-
                 document.getElementById("welcome-user").innerText = `Usuario: ${email}`;
                 
                 document.getElementById("login-cliente-screen").classList.add("hidden");
@@ -344,16 +337,14 @@ registros.forEach(reg => {
                     if (mapInstance) mapInstance.invalidateSize();
                     else initMap(datosCache);
                 }, 150);
-
                 cargarRegistrosCliente();
-
             } catch (err) {
                 alert("Error de autenticación: " + err.message);
             } finally {
                 document.querySelector("#login-cliente-screen button").innerText = "Ingresar al Panel";
             }
         }
-  }
+
         function logoutCliente() {
             localStorage.removeItem("supabase_access_token");
             localStorage.removeItem("cliente_email");
@@ -384,16 +375,13 @@ registros.forEach(reg => {
         async function cargarRegistrosCliente() {
             const tbody = document.getElementById("tabla-registros");
             tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: #94a3b8;">Cargando registros desde Supabase...</td></tr>`;
-
             try {
                 const tokenAutenticado = localStorage.getItem("supabase_access_token");
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&order=id.desc`, {
                     method: 'GET',
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${tokenAutenticado}` }
                 });
-
                 if (!res.ok) throw new Error("Sesión expirada o sin permisos.");
-
                 datosCache = await res.json();
                 datosFiltrados = [...datosCache];
                 
@@ -402,7 +390,6 @@ registros.forEach(reg => {
                 poblarSelectActividades(datosCache);
                 renderizarTabla(datosFiltrados);
                 initMap(datosCache);
-
             } catch (err) {
                 console.error("Fallo:", err);
                 tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: #dc2626;">Fallo al cargar: ${err.message}</td></tr>`;
@@ -412,38 +399,31 @@ registros.forEach(reg => {
         function actualizarDashboardGerencial(data) {
             const total = data.length;
             document.getElementById("stat-total").innerText = total;
-
             if (total === 0) {
                 document.getElementById("stat-con-foto").innerText = "0%";
                 document.getElementById("stat-pendientes").innerText = "0";
                 document.getElementById("stat-recientes").innerText = "0";
                 return;
             }
-
             const conFoto = data.filter(r => r.foto_base64 && r.foto_base64.length > 100).length;
             const porcentajeFoto = Math.round((conFoto / total) * 100);
             document.getElementById("stat-con-foto").innerText = `${porcentajeFoto}%`;
-
             const pendientes = data.filter(r => r.estado_incidencia && r.estado_incidencia !== 'OPERATIVA' && r.estado_incidencia !== 'ATENDIDA').length;
             document.getElementById("stat-pendientes").innerText = pendientes;
-
             const hace30Dias = new Date();
             hace30Dias.setDate(hace30Dias.getDate() - 30);
             const recientes = data.filter(r => r.timestamp && new Date(r.timestamp) >= hace30Dias).length;
             document.getElementById("stat-recientes").innerText = recientes;
-
             document.getElementById("print-fecha-generacion").innerText = `Generado el: ${new Date().toLocaleString()} | Total Registros Auditados: ${total} | Incidencias Pendientes: ${pendientes}`;
         }
 
         function actualizarAnaliticaCuadrillas(data) {
             const contenedor = document.getElementById("lista-cuadrillas-rendimiento");
             const conteoUsuarios = {};
-
             data.forEach(r => {
                 const usr = r.usuario || "Sin identificar";
                 conteoUsuarios[usr] = (conteoUsuarios[usr] || 0) + 1;
             });
-
             let html = "";
             for (const [usr, count] of Object.entries(conteoUsuarios)) {
                 html += `
@@ -482,14 +462,12 @@ registros.forEach(reg => {
             const texto = document.getElementById("filtro-texto").value.toLowerCase();
             const actividadSeleccionada = document.getElementById("filtro-actividad").value;
             const estadoSeleccionado = document.getElementById("filtro-estado").value;
-
             datosFiltrados = datosCache.filter(reg => {
                 const matchTexto = 
                     (reg.id_poste && reg.id_poste.toLowerCase().includes(texto)) ||
                     (reg.sector_barrio && reg.sector_barrio.toLowerCase().includes(texto)) ||
                     (reg.usuario && reg.usuario.toLowerCase().includes(texto)) ||
                     (reg.descripcion_trabajo && reg.descripcion_trabajo.toLowerCase().includes(texto));
-
                 const matchActividad = actividadSeleccionada === "" || reg.tipo_actividad === actividadSeleccionada;
                 
                 let matchEstado = true;
@@ -501,10 +479,8 @@ registros.forEach(reg => {
                 } else if (estadoSeleccionado === "ATENDIDA") {
                     matchEstado = estReg === 'ATENDIDA';
                 }
-
                 return matchTexto && matchActividad && matchEstado;
             });
-
             renderizarTabla(datosFiltrados);
             initMap(datosFiltrados);
         }
@@ -520,7 +496,6 @@ registros.forEach(reg => {
 
         async function marcarAtendida(idRegistro) {
             if (!confirm("¿Deseas marcar esta incidencia como corregida / atendida?")) return;
-
             try {
                 const tokenAutenticado = localStorage.getItem("supabase_access_token");
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${idRegistro}`, {
@@ -533,12 +508,9 @@ registros.forEach(reg => {
                     },
                     body: JSON.stringify({ estado_incidencia: 'ATENDIDA' })
                 });
-
                 if (!res.ok) throw new Error("No se pudo actualizar el registro.");
-
                 alert("Incidencia marcada como atendida correctamente.");
                 cargarRegistrosCliente();
-
             } catch (err) {
                 alert("Error al actualizar: " + err.message);
             }
@@ -562,9 +534,7 @@ registros.forEach(reg => {
                 } else if (estado === 'ATENDIDA') {
                     badgeClass = 'badge-atendida';
                 }
-
                 const imgTableId = `table_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
-
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td style="font-weight: bold; color: #0f172a;">${reg.id_poste || 'N/D'}</td>
@@ -588,8 +558,6 @@ registros.forEach(reg => {
                     </td>
                 `;
                 tbody.appendChild(tr);
-
-                // Disparar la carga de la miniatura firmada para cada registro
                 if (reg.foto_base64) {
                     cargarMiniaturaTablaSegura(reg.foto_base64, imgTableId);
                 }
@@ -601,17 +569,14 @@ registros.forEach(reg => {
             const btnEl = document.getElementById(`btn_${elementoImgId}`);
             const loaderEl = document.getElementById(`loader_${elementoImgId}`);
             if (!el) return;
-
             if (rutaFoto.startsWith('data:') || rutaFoto.startsWith('http')) {
                 el.src = rutaFoto;
                 if(loaderEl) loaderEl.style.display = 'none';
                 if(btnEl) btnEl.style.display = 'inline-block';
                 return;
             }
-
             const token = localStorage.getItem('supabase_access_token');
             if (!token) return;
-
             const rutaLimpia = rutaFoto.startsWith('inspecciones/') ? rutaFoto : `inspecciones/${rutaFoto}`;
             try {
                 const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
@@ -653,6 +618,7 @@ registros.forEach(reg => {
                 alert("No se encontró la imagen.");
             }
         }
+
         function cerrarModalFoto() {
             const modal = document.getElementById("modal-foto");
             modal.classList.add("hidden");
@@ -661,7 +627,6 @@ registros.forEach(reg => {
 
         function exportarCSV() {
             if (datosFiltrados.length === 0) return alert("No hay datos para exportar.");
-
             let csvContent = "\uFEFFID Poste,Tipo Actividad,Estado Incidencia,Sector/Barrio,Descripcion,Tecnico,Latitud,Longitud,Fecha,Tiene Evidencia\n";
             datosFiltrados.forEach(r => {
                 const tieneFoto = r.foto_base64 ? "SI" : "NO";
@@ -681,7 +646,6 @@ registros.forEach(reg => {
                 ].join(",");
                 csvContent += fila + "\n";
             });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
