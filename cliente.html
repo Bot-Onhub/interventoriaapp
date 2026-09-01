@@ -282,9 +282,37 @@
                 if (reg.latitud && reg.longitud) {
                     const latLng = [parseFloat(reg.latitud), parseFloat(reg.longitud)];
                     bounds.push(latLng);
+                    
+                    const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
 
-                    const estado = reg.estado_incidencia || 'OPERATIVA';
-                    const colorPin = estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? '🔴' : '🔵';
+                    const popupContent = `
+                        <div style="font-size: 0.85rem; padding: 4px;">
+                            <b>Poste:</b> ${reg.id_poste || 'N/D'}<br>
+                            <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
+                            ${reg.foto_base64 ? `
+                                <img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">
+                            ` : '<span>Sin evidencia</span>'}
+                        </div>
+                    `;
+
+                    const marker = L.marker(latLng)
+                        .addTo(markersLayer)
+                        .bindPopup(popupContent);
+
+                    if (reg.foto_base64) {
+                        marker.on('popupopen', () => {
+                            cargarMiniaturaTablaSegura(reg.foto_base64, mapImgId);
+                        });
+                    }
+                }
+            });
+
+            if (bounds.length > 0) {
+                mapInstance.fitBounds(bounds, { padding: [50, 50] });
+            }
+            setTimeout(() => {
+                if (mapInstance) mapInstance.invalidateSize();
+            }, 150);
 
                    
                   // 1. Asegúrate de generar un ID único para la imagen dentro del bucle
