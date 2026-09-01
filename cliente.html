@@ -278,78 +278,39 @@
             }
 
             let bounds = [];
-            registros.forEach(reg => {
-                if (reg.latitud && reg.longitud) {
-                    const latLng = [parseFloat(reg.latitud), parseFloat(reg.longitud)];
-                    bounds.push(latLng);
-                    
-                    const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
+            // Dentro de la función que recorre los datos para el mapa:
+registros.forEach(reg => {
+    if (reg.latitud && reg.longitud) {
+        const latLng = [parseFloat(reg.latitud), parseFloat(reg.longitud)];
+        bounds.push(latLng);
 
-                    const popupContent = `
-                        <div style="font-size: 0.85rem; padding: 4px;">
-                            <b>Poste:</b> ${reg.id_poste || 'N/D'}<br>
-                            <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
-                            ${reg.foto_base64 ? `
-                                <img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">
-                            ` : '<span>Sin evidencia</span>'}
-                        </div>
-                    `;
+        // 1. Generar un ID único para la imagen dentro del bucle
+        const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
 
-                    const marker = L.marker(latLng)
-                        .addTo(markersLayer)
-                        .bindPopup(popupContent);
+        // 2. Construir el HTML del popup dejando la imagen vacía por defecto
+        const popupContent = `
+            <div style="font-size: 0.85rem; padding: 4px;">
+                <b>Poste:</b> ${reg.id_poste || 'N/D'}<br>
+                <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
+                ${reg.foto_base64 ? `
+                    <img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">
+                ` : '<span>Sin evidencia</span>'}
+            </div>
+        `;
 
-                    if (reg.foto_base64) {
-                        marker.on('popupopen', () => {
-                            cargarMiniaturaTablaSegura(reg.foto_base64, mapImgId);
-                        });
-                    }
-                }
+        // 3. Crear el marcador en el mapa
+        const marker = L.marker(latLng)
+            .addTo(markersLayer)
+            .bindPopup(popupContent);
+
+        // 4. Disparar la petición segura solo al abrir el popup
+        if (reg.foto_base64) {
+            marker.on('popupopen', () => {
+                cargarMiniaturaTablaSegura(reg.foto_base64, mapImgId);
             });
-
-            if (bounds.length > 0) {
-                mapInstance.fitBounds(bounds, { padding: [50, 50] });
-            }
-            setTimeout(() => {
-                if (mapInstance) mapInstance.invalidateSize();
-            }, 150);
-
-                   
-                  // 1. Asegúrate de generar un ID único para la imagen dentro del bucle
-const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
-
-// 2. Construye el HTML del popup dejando la imagen vacía por defecto
-const popupContent = `
-    <div style="font-size: 0.85rem; padding: 4px;">
-        <b>Poste:</b> ${reg.id_poste}<br>
-        <b>Actividad:</b> ${reg.tipo_actividad}<br>
-        ${reg.foto_base64 ? `
-            <img id="${mapImgId}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width: 120px; height: auto; min-height: 80px; border-radius: 4px; margin-top: 5px; background:#e0e0e0;" alt="Cargando evidencia...">
-        ` : '<span>Sin evidencia</span>'}
-    </div>
-`;
-
-// 3. Crea el marcador en el mapa
-const marker = L.marker([reg.latitud, reg.longitud])
-    .addTo(markersLayer) // O la variable que uses para tu capa de marcadores
-    .bindPopup(popupContent);
-
-// 4. EL PASO CRÍTICO: Disparar la petición segura solo al abrir el popup
-if (reg.foto_base64) {
-    marker.on('popupopen', () => {
-        // Reutilizamos la misma función de firmas seguras que pusimos para la tabla
-        cargarMiniaturaTablaSegura(reg.foto_base64, mapImgId);
-    });
-}
-
-            if (bounds.length > 0) {
-                mapInstance.fitBounds(bounds, { padding: [50, 50] });
-            }
-
-            setTimeout(() => {
-                if (mapInstance) mapInstance.invalidateSize();
-            }, 150);
         }
+    }
+});
 
         async function loginCliente() {
             const email = document.getElementById("cliente_user").value.trim().toLowerCase();
