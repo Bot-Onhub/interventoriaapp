@@ -544,12 +544,10 @@
         function renderizarTabla(data) {
             const tbody = document.getElementById("tabla-registros");
             document.getElementById("total-registros").innerText = data.length;
-
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: #d97706;">No se encontraron registros en el filtro actual.</td></tr>`;
                 return;
             }
-
             tbody.innerHTML = "";
             data.forEach(reg => {
                 const fechaFormateada = reg.timestamp ? new Date(reg.timestamp).toLocaleString() : "N/D";
@@ -562,6 +560,8 @@
                     badgeClass = 'badge-atendida';
                 }
 
+                const imgTableId = `table_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
+
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td style="font-weight: bold; color: #0f172a;">${reg.id_poste || 'N/D'}</td>
@@ -573,30 +573,83 @@
                     <td style="font-family: monospace; font-size: 0.75rem; color: #64748b;">${reg.latitud}, ${reg.longitud}</td>
                     <td style="font-size: 0.75rem; color: #64748b;">${fechaFormateada}</td>
                    <td style="text-align: center;">
-                        ${reg.foto_base64 ? (
-                            reg.foto_base64.startsWith('data:image') || reg.foto_base64.startsWith('http') ?
-                            `<button onclick="verFotoGrande('${reg.id}')" style="background: none; border: none; cursor: pointer;"><img src="${reg.foto_base64}" class="thumbnail"></button>` :
-                            `<span style="font-size: 0.7rem; color: #475569;" title="${reg.foto_base64}">📁 ${reg.foto_base64}</span>`
-                        ) : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
+                        ${reg.foto_base64 ? `
+                            <button id="btn_${imgTableId}" onclick="verFotoGrande('${reg.id}')" style="background: none; border: none; cursor: pointer; display: none;">
+                                <img id="${imgTableId}" class="thumbnail" alt="Evidencia">
+                            </button>
+                            <span id="loader_${imgTableId}" style="font-size: 0.7rem; color: #94a3b8;">Cargando...</span>
+                        ` : '<span style="font-size: 0.75rem; color: #94a3b8;">Sin foto</span>'}
                     </td>
                     <td style="text-align: center;" class="no-print">
                         ${estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? `<button onclick="marcarAtendida(${reg.id})" class="btn-action">Marcar Atendida</button>` : '<span style="font-size: 0.7rem; color: #94a3b8;">N/A</span>'}
                     </td>
                 `;
                 tbody.appendChild(tr);
+
+                // Disparar la carga de la miniatura firmada para cada registro
+                if (reg.foto_base64) {
+                    cargarMiniaturaTablaSegura(reg.foto_base64, imgTableId);
+                }
             });
+        }
+
+        async function cargarMiniaturaTablaSegura(rutaFoto, elementoImgId) {
+            const el = document.getElementById(elementoImgId);
+            const btnEl = document.getElementById(`btn_${elementoImgId}`);
+            const loaderEl = document.getElementById(`loader_${elementoImgId}`);
+            if (!el) return;
+
+            if (rutaFoto.startsWith('data:') || rutaFoto.startsWith('http')) {
+                el.src = rutaFoto;
+                if(loaderEl) loaderEl.style.display = 'none';
+                if(btnEl) btnEl.style.display = 'inline-block';
+                return;
+            }
+
+            const token = localStorage.getItem('supabase_access_token');
+            if (!token) return;
+
+            const rutaLimpia = rutaFoto.startsWith('inspecciones/') ? rutaFoto : `inspecciones/${rutaFoto}`;
+            try {
+                const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/evidencias-inspeccion/${rutaLimpia}`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ expiresIn: 300 })
+                });
+                const data = await res.json();
+                
+                if (res.ok && data.signedURL) {
+                    const urlSegura = `${SUPABASE_URL}/storage/v1${data.signedURL}`;
+                    el.src = urlSegura;
+                    if(loaderEl) loaderEl.style.display = 'none';
+                    if(btnEl) btnEl.style.display = 'inline-block';
+                } else {
+                    if(loaderEl) loaderEl.innerText = "Error";
+                }
+            } catch (e) {
+                console.error('Error al solicitar URL firmada para la tabla:', e);
+                if(loaderEl) loaderEl.innerText = "Error";
+            }
         }
 
         function verFotoGrande(idRegistro) {
             const registro = datosFiltrados.find(r => String(r.id) === String(idRegistro));
             if (registro && registro.foto_base64) {
-                document.getElementById("img-modal").src = registro.foto_base64;
+                const imgTableId = document.querySelector(`img[id^="table_img_${registro.id}_"]`);
+                if (imgTableId && imgTableId.src) {
+                    document.getElementById("img-modal").src = imgTableId.src;
+                } else {
+                    document.getElementById("img-modal").src = registro.foto_base64;
+                }
                 document.getElementById("modal-foto").classList.remove("hidden");
             } else {
                 alert("No se encontró la imagen.");
             }
         }
-
         function cerrarModalFoto() {
             const modal = document.getElementById("modal-foto");
             modal.classList.add("hidden");
