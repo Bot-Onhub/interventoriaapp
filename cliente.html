@@ -286,16 +286,7 @@
                     const estado = reg.estado_incidencia || 'OPERATIVA';
                     const colorPin = estado !== 'OPERATIVA' && estado !== 'ATENDIDA' ? '🔴' : '🔵';
 
-                    const popupContent = `
-                        <div style="font-size: 0.85rem; line-height: 1.4;">
-                            <b>${colorPin} Poste:</b> ${reg.id_poste || 'N/D'}<br>
-                            <b>Actividad:</b> ${reg.tipo_actividad || 'N/D'}<br>
-                            <b>Estado:</b> ${estado}<br>
-                            <b>Sector:</b> ${reg.sector_barrio || 'N/D'}<br>
-                            ${reg.foto_base64 ? `<img src="${reg.foto_base64}" style="margin-top: 6px; width: 100px; height: auto; border-radius: 4px;">` : ''}
-                        </div>
-                    `;
-
+                   
                   // 1. Asegúrate de generar un ID único para la imagen dentro del bucle
 const mapImgId = `admin_map_img_${reg.id}_${Math.random().toString(36).substring(2, 7)}`;
 
